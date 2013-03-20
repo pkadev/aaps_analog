@@ -29,9 +29,43 @@
 #define BLED_TOGGLE() (BLED_PORT^=(1<<BLED_PIN))
 #define BLED_CLR() (BLED_PORT&=~(1<<BLED_PIN))
 
+#define LED_PIN 5
+#define LED_DDR DDRD
+#define LED_PORT PORTD
+
+#define LED_INIT() (LED_DDR|=(1<<LED_PIN))
+#define LED_SET() (LED_PORT|=(1<<LED_PIN))
+#define LED_TOGGLE() (LED_PORT^=(1<<LED_PIN))
+#define LED_CLR() (LED_PORT&=~(1<<LED_PIN))
+
+#define CLIND_PIN 3
+#define CLIND_PORT PORTD
+#define CLIND_DDR DDRD
+
+/* SW1 Defines */
+#define SW1_PORT PORTD
+#define SW1_DDR DDRD
+#define SW1_IN PIND
+#define SW1_PIN 2
+
+#define SW1_WAIT_UNTILL_PRESSED() while((SW1_IN & (1<<SW1_PIN))==(1<<SW1_PIN)){}
+/* end SW1 defines */
+
+/* SW2 Defines */
+#define SW2_PORT PORTB
+#define SW2_DDR DDRB
+#define SW2_IN PINB
+#define SW2_PIN 0
+
+#define SW2_WAIT_UNTILL_PRESSED() while((SW2_IN & (1<<SW2_PIN))==0){}
+/* end SW1 defines */
 
 #define IRQ_PIN PD0
 #define SPI_CLK PB5
+/* 
+ * SW1, aktiv låg, pullup, hittar du på PD2 (INT0/PCINT18)
+ * SW2/IRQ, aktiv hög, pulldown, hittar du på PB0 (PCINT0/CLKO/ICP1) OBS SW2/IRQ delas med IRQ dvs du får IRQ på _D också om du trycker på SW2.
+ */
 
 volatile uint8_t ipc_rcv_buf = 0;
 
@@ -43,17 +77,66 @@ ISR(SPI_STC_vect)
     BLED_CLR();
 }
 
+ISR(PCINT0_vect) /* SW2 */
+{
+    /*
+     * Only do stuff on one edge and debounce.
+     * Button may need longer delay if extremely bouncy.
+     */
+        
+    if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
+        _delay_ms(20); //Debound delay
+        if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
+            LED_SET();
+            _delay_ms(10);
+            LED_CLR();
+            _delay_ms(300);
+            LED_SET();
+            _delay_ms(10);
+            LED_CLR();
+        }
+    }
+}
+
+ISR(PCINT2_vect)
+{
+    //If SW1 is configured as PCINT18
+}
+
+ISR(INT0_vect) /* SW1 */
+{
+    LED_SET();
+    _delay_ms(10);
+    LED_CLR();
+}
+
 int main(void)
 {
+    /* Ext IRQ 0 */
+    EICRA |= (1<<ISC01);        //IRQ on falling edge
+    EIMSK |= (1<<INT0);         //Enable INT0
+    /* end Ext IRQ 0 */
+
+    /* PIN change IRQ */
+    //PCICR |= (1<<PCIE2);      //Enable PCINT2 (PCINT23..16)
+    //PCMSK2 |= (1<<PCINT18);   //Enable PCINT18
+    /* End PIN change IRQ */
+
+    /* PIN change IRQ */
+    PCICR |= (1<<PCIE0);      //Enable PCINT2 (PCINT23..16)
+    PCMSK0 |= (1<<PCINT0);   //Enable PCINT18
+    /* End PIN change IRQ */
+
     SPCR = (1<<SPIE) | (1<<SPE);
     /* Init LED pins */
     BLED_INIT();
     GLED_INIT();
+    LED_INIT();
 
     /* Blink green led as boot indication */
-    GLED_SET();
-    _delay_ms(100);
-    GLED_CLR();
+
+    /* Enable system LED */
+    LED_SET();
     
     /* Enable global interrupts */    
     STATUS_REGISTER |= (1<<STATUS_REGISTER_IT);
@@ -61,16 +144,16 @@ int main(void)
     /* Do we need to set MISO as output? */
     DDRB |= (1<<PB4);
 
-    /* Set IRQ as output */
+    /* Set I2Q as output */
     //DDRD |= (1<<IRQ_PIN);
 
-    /* Init SPI Slave */
+    /* Init 2PI Slave */
     while(1)
     {
         if (ipc_rcv_buf > 0x01 && ipc_rcv_buf < 20)
-            GLED_SET();
+            LED_SET();
         else
-            GLED_CLR();
+            LED_CLR();
     }
 
     return 0;
