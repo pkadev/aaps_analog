@@ -2,6 +2,32 @@
 #include "1wire.h"
 #include "m128_hal.h"
 
+/*
+ * One Wire Command defines
+ */
+#define OW_CMDF0_SEARCH_ROM 0xF0
+#define OW_CMD33_READ_ROM 0x33
+#define OW_CMD55_MATCH_ROM 0x55
+#define OW_CMD44_CONV_TEMP 0x44
+#define OW_CMDCC_SKIP_ROM 0xCC
+#define OW_CMDBE_READ_SCRATCHPAD 0xBE
+
+#define FALSE 0
+#define TRUE  1
+#define DQ_PORT PORTB
+#define DQ_DDR DDRB
+#define DQ_PIN 1
+#define DQ_IN PINB
+#define DQ_MASK (1<<DQ_PIN)
+#define DQ_LOW() DQ_PORT&=~(1<<DQ_PIN)
+#define DQ_HIGH() DQ_PORT|=(1<<DQ_PIN)
+
+#define CRC8INIT    0x00
+#define CRC8POLY    0x18    //0X18 = X^8+X^5+X^4+X^0
+
+#define OW_ROM_BIT_LEN 64
+#define THERM_DECIMAL_STEPS_12BIT 625
+
 // global search state
 uint8_t LastDiscrepancy;
 uint8_t LastFamilyDiscrepancy;
@@ -108,7 +134,7 @@ ow_ret_val_t ow_read_scratchpad(ow_device_t *ow_device, ow_scratchpad_t *scratch
 {
     ow_reset();
     ow_write_byte(OW_CMD55_MATCH_ROM);
-    for (int8_t i=0; i<OW_ROM_BYTE_LEN; i++) {
+    for (int8_t i = 0; i < OW_ROM_BYTE_LEN; i++) {
         ow_write_byte(ow_device->addr[i]);
     }
     ow_write_byte(OW_CMDBE_READ_SCRATCHPAD);
@@ -279,12 +305,12 @@ static uint8_t ow_search(void)
 static uint8_t ow_reset(void)
 {
     uint8_t ret_val = 0;
-    DQ_DDR = (1<<DQ_PIN);
+    DQ_DDR |= (1<<DQ_PIN);
 
     DQ_LOW();
     _delay_us(480);
     DQ_HIGH();
-    DQ_DDR = 0;
+    DQ_DDR &= ~(1<<DQ_PIN);
     _delay_us(60);
     if ((DQ_PIN & DQ_MASK) == 0) {
         ret_val = 1;
@@ -295,7 +321,7 @@ static uint8_t ow_reset(void)
 
 static void ow_write_bit(uint8_t bitval)
 {
-    DQ_DDR = 0xff;
+    DQ_DDR |= (1<<DQ_PIN);
     DQ_LOW();
     if(bitval==1) {
         _delay_us(2);
@@ -310,7 +336,7 @@ static void ow_write_byte(uint8_t val)
     _delay_us(1);
     uint8_t i;
     uint8_t tmp;
-    for (i=0; i<8; i++) {
+    for (i = 0; i < 8; i++) {
         tmp = val>>i;
         tmp &= 0x01;
         ow_write_bit(tmp);
@@ -322,11 +348,11 @@ static uint8_t ow_read_bit(void)
 {
     uint8_t val;
     _delay_us(1);
-    DQ_DDR = 0xff;
+    DQ_DDR |= (1<<DQ_PIN);
     DQ_LOW();
     _delay_us(1);
-    DQ_DDR = 0x00;
-    DQ_PORT = 0x00;
+    DQ_DDR &= ~(1<<DQ_PIN);
+    DQ_PORT &= ~(1<<DQ_PIN);
     _delay_us(15);
     val = (DQ_IN & DQ_MASK);
     _delay_us(45);
@@ -336,7 +362,7 @@ static uint8_t ow_read_bit(void)
 static uint8_t ow_read_byte(void)
 {
     uint8_t value = 0;
-    for (uint8_t i=0; i<8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         if (ow_read_bit()) {
              value|=0x01<<i;
         } 
