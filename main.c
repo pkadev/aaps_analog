@@ -4,30 +4,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <avr/interrupt.h>
+#include <util/atomic.h>
 #include <util/delay.h>
 #include "m128_hal.h"
+#include "1wire.h"
 
-#define CS_MSK 0x04
-#define CS_MSK 0x04
-#define CLK_MSK 0x20
+#define CS_MSK 0x04 //What the hell are you?
+#define CLK_MSK 0x20 //What the hell are you?
 
-#define GLED_PIN PD3
-#define GLED_DDR DDRD
-#define GLED_PORT PORTD
+#define RELAY_D_PIN 7
+#define RELAY_D_DDR DDRD
+#define RELAY_D_PORT PORTD
 
-#define GLED_INIT() (GLED_DDR|=(1<<GLED_PIN))
-#define GLED_SET() (GLED_PORT|=(1<<GLED_PIN))
-#define GLED_TOGGLE() (GLED_PORT^=(1<<GLED_PIN))
-#define GLED_CLR() (GLED_PORT&=~(1<<GLED_PIN))
-
-#define BLED_PIN 1
-#define BLED_DDR DDRB
-#define BLED_PORT PORTB
-
-#define BLED_INIT() (BLED_DDR|=(1<<BLED_PIN))
-#define BLED_SET() (BLED_PORT|=(1<<BLED_PIN))
-#define BLED_TOGGLE() (BLED_PORT^=(1<<BLED_PIN))
-#define BLED_CLR() (BLED_PORT&=~(1<<BLED_PIN))
+#define RELAY_D_INIT() (RELAY_D_DDR|=(1<<RELAY_D_PIN))
+#define RELAY_D_SET() (RELAY_D_PORT|=(1<<RELAY_D_PIN))
+#define RELAY_D_TOGGLE() (RELAY_D_PORT^=(1<<RELAY_D_PIN))
+#define RELAY_D_CLR() (RELAY_D_PORT&=~(1<<RELAY_D_PIN))
 
 #define LED_PIN 5
 #define LED_DDR DDRD
@@ -38,6 +30,7 @@
 #define LED_TOGGLE() (LED_PORT^=(1<<LED_PIN))
 #define LED_CLR() (LED_PORT&=~(1<<LED_PIN))
 
+/* CLIND defines */
 #define CLIND_PIN 3
 #define CLIND_PORT PORTD
 #define CLIND_DDR DDRD
@@ -68,13 +61,14 @@
  */
 
 volatile uint8_t ipc_rcv_buf = 0;
+volatile uint8_t num_temp_sensors = 0;
 
 ISR(SPI_STC_vect)
 {
     ipc_rcv_buf = SPDR;
-    BLED_SET();
+    RELAY_D_SET();
     _delay_ms(1);
-    BLED_CLR();
+    RELAY_D_CLR();
 }
 
 ISR(PCINT0_vect) /* SW2 */
@@ -127,17 +121,22 @@ int main(void)
     PCMSK0 |= (1<<PCINT0);   //Enable PCINT18
     /* End PIN change IRQ */
 
-    SPCR = (1<<SPIE) | (1<<SPE);
+    SPCR = (1<<SPIE) | (1<<SPE) | (1<<CPHA);
     /* Init LED pins */
-    BLED_INIT();
-    GLED_INIT();
+    RELAY_D_INIT();
+    //GLED_INIT();
     LED_INIT();
 
     /* Blink green led as boot indication */
 
     /* Enable system LED */
-    LED_SET();
-    
+    for (int i=0; i < 100; i++) {
+        num_temp_sensors = ow_num_devices();
+        if (num_temp_sensors == 0) {
+            RELAY_D_SET();
+        }
+    }
+
     /* Enable global interrupts */    
     STATUS_REGISTER |= (1<<STATUS_REGISTER_IT);
     
@@ -154,6 +153,10 @@ int main(void)
             LED_SET();
         else
             LED_CLR();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        {
+            SPDR = num_temp_sensors;
+        }
     }
 
     return 0;
