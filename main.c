@@ -12,6 +12,15 @@
 #define CS_MSK 0x04 //What the hell are you?
 #define CLK_MSK 0x20 //What the hell are you?
 
+//REMOVE
+#define RLED_PIN 1
+#define RLED_DDR DDRD
+#define RLED_PORT PORTD
+#define RLED_INIT() (RLED_DDR|=(1<<RLED_PIN))
+#define RLED_SET() (RLED_PORT|=(1<<RLED_PIN))
+#define RLED_CLR() (RLED_PORT&=~(1<<RLED_PIN))
+// END REMOVE
+
 #define RELAY_D_PIN 7
 #define RELAY_D_DDR DDRD
 #define RELAY_D_PORT PORTD
@@ -44,6 +53,16 @@
 #define SW1_WAIT_UNTILL_PRESSED() while((SW1_IN & (1<<SW1_PIN))==(1<<SW1_PIN)){}
 /* end SW1 defines */
 
+/* IRQ Defines */
+#define IRQ_PORT PORTB
+#define IRQ_DDR DDRB
+#define IRQ_IN PINB
+#define IRQ_PIN 0
+#define IRQ_INIT() (IRQ_DDR|=(1<<IRQ_PIN))
+#define IRQ_SET()  (IRQ_PORT|=(1<<IRQ_PIN))
+#define IRQ_CLR()  (IRQ_PORT&=~(1<<IRQ_PIN))
+/* End IRQ Defines */
+
 /* SW2 Defines */
 #define SW2_PORT PORTB
 #define SW2_DDR DDRB
@@ -53,7 +72,6 @@
 #define SW2_WAIT_UNTILL_PRESSED() while((SW2_IN & (1<<SW2_PIN))==0){}
 /* end SW1 defines */
 
-#define IRQ_PIN PD0
 #define SPI_CLK PB5
 /* 
  * SW1, aktiv låg, pullup, hittar du på PD2 (INT0/PCINT18)
@@ -77,19 +95,22 @@ ISR(PCINT0_vect) /* SW2 */
      * Only do stuff on one edge and debounce.
      * Button may need longer delay if extremely bouncy.
      */
-        
-    if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
-        _delay_ms(20); //Debound delay
-        if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
             LED_SET();
-            _delay_ms(10);
+            _delay_ms(100);
             LED_CLR();
-            _delay_ms(300);
-            LED_SET();
-            _delay_ms(10);
-            LED_CLR();
-        }
-    }
+
+    //if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
+    //    _delay_ms(20); //Debound delay
+    //    if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
+    //        LED_SET();
+    //        _delay_ms(10);
+    //        LED_CLR();
+    //        _delay_ms(300);
+    //        LED_SET();
+    //        _delay_ms(10);
+    //        LED_CLR();
+    //    }
+    //}
 }
 
 ISR(PCINT2_vect)
@@ -100,42 +121,60 @@ ISR(PCINT2_vect)
 ISR(INT0_vect) /* SW1 */
 {
     LED_SET();
-    _delay_ms(10);
+    IRQ_SET();
+    _delay_ms(3);
+    IRQ_CLR();
     LED_CLR();
 }
 
-int main(void)
+/* Debug function */
+static void enable_ext_irq0()
 {
     /* Ext IRQ 0 */
     EICRA |= (1<<ISC01);        //IRQ on falling edge
     EIMSK |= (1<<INT0);         //Enable INT0
     /* end Ext IRQ 0 */
+}
 
+static void enable_pcint18()
+{
     /* PIN change IRQ */
     //PCICR |= (1<<PCIE2);      //Enable PCINT2 (PCINT23..16)
     //PCMSK2 |= (1<<PCINT18);   //Enable PCINT18
     /* End PIN change IRQ */
+}
 
+static void enable_pcint0()
+{
     /* PIN change IRQ */
-    PCICR |= (1<<PCIE0);      //Enable PCINT2 (PCINT23..16)
-    PCMSK0 |= (1<<PCINT0);   //Enable PCINT18
+    PCICR |= (1<<PCIE0);      //Enable PCINT0 (PCINT7..0)
+    //PCMSK0 |= (1<<PCINT0);   //Enable PCINT0 - Don't run this when pin is configured as IRQ
     /* End PIN change IRQ */
+}
+
+/* IPC Commands */
+enum ipc_command_t
+{
+    IPC_CMD_SUPPORTED_CMDS,
+    IPC_CMD_PERIPH_DETECT,
+    IPC_CMD_NUM_OF_CMDS,
+    IPC_CMD_GET_TEMP,
+    IPC_CMD_GET_VOLTAGE,
+    IPC_CMD_GET_CURRENT
+};
+int main(void)
+{
 
     SPCR = (1<<SPIE) | (1<<SPE) | (1<<CPHA);
+    enable_ext_irq0();
+    enable_pcint18(); 
+    enable_pcint0();
+
     /* Init LED pins */
     RELAY_D_INIT();
-    //GLED_INIT();
     LED_INIT();
-
-    /* Blink green led as boot indication */
-
-    /* Enable system LED */
-    for (int i=0; i < 100; i++) {
-        num_temp_sensors = ow_num_devices();
-        if (num_temp_sensors == 0) {
-            RELAY_D_SET();
-        }
-    }
+    RLED_INIT();
+    IRQ_INIT();
 
     /* Enable global interrupts */    
     STATUS_REGISTER |= (1<<STATUS_REGISTER_IT);
@@ -143,20 +182,22 @@ int main(void)
     /* Do we need to set MISO as output? */
     DDRB |= (1<<PB4);
 
-    /* Set I2Q as output */
-    //DDRD |= (1<<IRQ_PIN);
-
-    /* Init 2PI Slave */
     while(1)
     {
-        if (ipc_rcv_buf > 0x01 && ipc_rcv_buf < 20)
-            LED_SET();
-        else
-            LED_CLR();
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-        {
-            SPDR = num_temp_sensors;
+        if (ipc_rcv_buf == IPC_CMD_PERIPH_DETECT) {
+                RLED_SET();
+                SPDR = 0xDE;
+                IRQ_SET();
+                _delay_us(500);
+                IRQ_CLR();
+                RLED_CLR();
+                ipc_rcv_buf = 0;
         }
+        
+        //ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        //{
+        //    SPDR = num_temp_sensors;
+        //}
     }
 
     return 0;
