@@ -61,6 +61,7 @@
 #define SW1_PIN 2
 
 #define SW1_WAIT_UNTILL_PRESSED() while((SW1_IN & (1<<SW1_PIN))==(1<<SW1_PIN)){}
+#define SW1_WAIT_UNTILL_RELEASED() while((SW1_IN & (1<<SW1_PIN))!=(1<<SW1_PIN)){}
 /* end SW1 defines */
 
 /* IRQ Defines */
@@ -105,22 +106,18 @@ ISR(PCINT0_vect) /* SW2 */
      * Only do stuff on one edge and debounce.
      * Button may need longer delay if extremely bouncy.
      */
+    if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
+        _delay_ms(20); //Debound delay
+        if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
             LED_SET();
-            _delay_ms(100);
+            _delay_ms(10);
             LED_CLR();
-
-    //if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
-    //    _delay_ms(20); //Debound delay
-    //    if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
-    //        LED_SET();
-    //        _delay_ms(10);
-    //        LED_CLR();
-    //        _delay_ms(300);
-    //        LED_SET();
-    //        _delay_ms(10);
-    //        LED_CLR();
-    //    }
-    //}
+            _delay_ms(300);
+            LED_SET();
+            _delay_ms(10);
+            LED_CLR();
+        }
+    }
 }
 
 ISR(PCINT2_vect)
@@ -130,11 +127,21 @@ ISR(PCINT2_vect)
 
 ISR(INT0_vect) /* SW1 */
 {
-    LED_SET();
-    IRQ_SET();
-    _delay_ms(3);
-    IRQ_CLR();
-    LED_CLR();
+    #define BREAK_TIME 200
+    uint8_t delay = 0;
+    _delay_ms(30);
+    while ((SW1_IN & (1<<SW1_PIN)) != (1<<SW1_PIN)) {
+        _delay_ms(10);
+        if(delay++ == BREAK_TIME) break;
+    }
+
+    if (delay >= BREAK_TIME)
+    {
+        RELAY_D_SET();
+        _delay_ms(5);
+        RELAY_D_CLR();
+    } else {
+    }
 }
 
 /* Debug function */
@@ -158,7 +165,7 @@ static void enable_pcint0()
 {
     /* PIN change IRQ */
     PCICR |= (1<<PCIE0);      //Enable PCINT0 (PCINT7..0)
-    //PCMSK0 |= (1<<PCINT0);   //Enable PCINT0 - Don't run this when pin is configured as IRQ
+    PCMSK0 |= (1<<PCINT0);   //Enable PCINT0 - Don't run this when pin is configured as IRQ
     /* End PIN change IRQ */
 }
 
@@ -234,7 +241,7 @@ int main(void)
 {
     _delay_ms(200);
 
-    SPCR = (1<<SPIE) | (1<<SPE) | (1<<CPHA);
+    //SPCR = (1<<SPIE) | (1<<SPE) | (1<<CPHA);
     enable_ext_irq0();
     enable_pcint18(); 
     enable_pcint0();
@@ -243,7 +250,7 @@ int main(void)
     RELAY_D_INIT();
     LED_INIT();
     RLED_INIT();
-    IRQ_INIT();
+    //IRQ_INIT();
     CS_DAC_STR_INIT();
     char str[10] = {0};
     /* Enable global interrupts */    
