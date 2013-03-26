@@ -158,7 +158,7 @@ static void enable_pcint0()
 {
     /* PIN change IRQ */
     PCICR |= (1<<PCIE0);      //Enable PCINT0 (PCINT7..0)
-    //PCMSK0 |= (1<<PCINT0);   //Enable PCINT0 - Don't run this when pin is configured as IRQ
+    PCMSK0 |= (1<<PCINT0);   //Enable PCINT0 - Don't run this when pin is configured as IRQ
     /* End PIN change IRQ */
 }
 
