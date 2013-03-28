@@ -6,20 +6,32 @@
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 #include <util/delay.h>
-#include "m128_hal.h"
 #include "1wire.h"
+
+/*
+ * System defines
+ */
+#define STATUS_REGISTER         SREG
+#define STATUS_REGISTER_IT      SREG_I
+/*
+ * Defines for Watchdog
+ */
+#define WD_CTRL_REG             WDTCSR
+#define WD_CHANGE_ENABLE        WDCE
+#define WD_IT_ENABLE_MASK       WDIE
+#define WD_ENABLE               WDE
+#define WD_PRESCALER2           WDP2
+#define WD_PRESCALER1           WDP1
+#define WD_PRESCALER0           WDP0
+
+/*
+ * UART0 defines
+ */
+#define UART_DATA_REG           UDR0
+#define UART_BAUD_RATE_REG_LOW  UBRR0L
 
 #define CS_MSK 0x04 //What the hell are you?
 #define CLK_MSK 0x20 //What the hell are you?
-
-//REMOVE
-#define RLED_PIN 6
-#define RLED_DDR DDRD
-#define RLED_PORT PORTD
-#define RLED_INIT() (RLED_DDR|=(1<<RLED_PIN))
-#define RLED_SET() (RLED_PORT|=(1<<RLED_PIN))
-#define RLED_CLR() (RLED_PORT&=~(1<<RLED_PIN))
-// END REMOVE
 
 /* DAC Current defines */
 #define CS_DAC_STR_PIN 1
@@ -28,22 +40,59 @@
 #define CS_DAC_STR_INIT() (CS_DAC_STR_DDR|=(1<<CS_DAC_STR_PIN))
 #define CS_DAC_STR_SET() (CS_DAC_STR_PORT|=(1<<CS_DAC_STR_PIN))
 #define CS_DAC_STR_CLR() (CS_DAC_STR_PORT&=~(1<<CS_DAC_STR_PIN))
-
 /* End DAC current defines */
 
+/* DAC Voltage defines */
+#define CS_DAC_VOLT_PIN 2
+#define CS_DAC_VOLT_DDR DDRC
+#define CS_DAC_VOLT_PORT PORTC
+#define CS_DAC_VOLT_INIT() (CS_DAC_VOLT_DDR|=(1<<CS_DAC_VOLT_PIN))
+#define CS_DAC_VOLT_SET() (CS_DAC_VOLT_PORT|=(1<<CS_DAC_VOLT_PIN))
+#define CS_DAC_VOLT_CLR() (CS_DAC_VOLT_PORT&=~(1<<CS_DAC_VOLT_PIN))
+/* End DAC Voltage define */
+
+/* Zero STR defines */
+#define ZERO_STR_PIN 3
+#define ZERO_STR_DDR DDRC
+#define ZERO_STR_PORT PORTC
+#define ZERO_STR_INIT() (ZERO_STR_DDR |= (1<<ZERO_STR_PIN))
+#define ZERO_STR_SET() (ZERO_STR_PORT |= (1<<ZERO_STR_PIN))
+#define ZERO_STR_CLR() (ZERO_STR_PORT &= ~(1<<ZERO_STR_PIN))
+/* End Zero STR defines */
+
+/* Zero Volt defines */
+#define ZERO_VOLT_PIN 4
+#define ZERO_VOLT_DDR DDRC
+#define ZERO_VOLT_PORT PORTC
+#define ZERO_VOLT_INIT() (ZERO_VOLT_DDR |= (1<<ZERO_VOLT_PIN))
+#define ZERO_VOLT_SET() (ZERO_VOLT_PORT |= (1<<ZERO_VOLT_PIN))
+#define ZERO_VOLT_CLR() (ZERO_VOLT_PORT &= ~(1<<ZERO_VOLT_PIN))
+/* End Zero STR defines */
+
+/**/
+/* Relay Defines */
+#define RELAY_PIN 5
+#define RELAY_DDR DDRC
+#define RELAY_PORT PORTC
+#define RELAY_INIT() (RELAY_DDR|=(1<<RELAY_PIN))
+#define RELAY_SET() (RELAY_PORT|=(1<<RELAY_PIN))
+#define RELAY_TOGGLE() (RELAY_PORT^=(1<<RELAY_PIN))
+#define RELAY_CLR() (RELAY_PORT&=~(1<<RELAY_PIN))
+/* End relay defines */
+
+/* Relay Defines */
 #define RELAY_D_PIN 7
 #define RELAY_D_DDR DDRD
 #define RELAY_D_PORT PORTD
-
 #define RELAY_D_INIT() (RELAY_D_DDR|=(1<<RELAY_D_PIN))
 #define RELAY_D_SET() (RELAY_D_PORT|=(1<<RELAY_D_PIN))
 #define RELAY_D_TOGGLE() (RELAY_D_PORT^=(1<<RELAY_D_PIN))
 #define RELAY_D_CLR() (RELAY_D_PORT&=~(1<<RELAY_D_PIN))
+/* End Relay Defines */
 
 #define LED_PIN 5
 #define LED_DDR DDRD
 #define LED_PORT PORTD
-
 #define LED_INIT() (LED_DDR|=(1<<LED_PIN))
 #define LED_SET() (LED_PORT|=(1<<LED_PIN))
 #define LED_TOGGLE() (LED_PORT^=(1<<LED_PIN))
@@ -92,6 +141,25 @@
 volatile uint8_t ipc_rcv_buf = 0;
 volatile uint8_t num_temp_sensors = 0;
 
+uint16_t voltage = 0;
+uint16_t current_limit = 0;
+
+enum modes {
+    MODE_1,
+    MODE_2,
+    MODE_3,
+    MODE_4,
+    MODE_5,
+    NUMBER_OF_MODES
+};
+volatile uint8_t mode = MODE_1;
+volatile uint8_t sw1_pushed = 0;
+volatile uint8_t sw2_pushed = 0;
+ISR(PCINT2_vect)
+{
+    //If SW1 is configured as PCINT18
+}
+
 ISR(SPI_STC_vect)
 {
     ipc_rcv_buf = SPDR;
@@ -107,22 +175,21 @@ ISR(PCINT0_vect) /* SW2 */
      * Button may need longer delay if extremely bouncy.
      */
     if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
-        _delay_ms(20); //Debound delay
-        if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
-            LED_SET();
-            _delay_ms(10);
-            LED_CLR();
-            _delay_ms(300);
-            LED_SET();
-            _delay_ms(10);
-            LED_CLR();
+        _delay_ms(20); //Debounce delay
+        while((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
+            //LED_SET();
+            //_delay_ms(100);
+            //LED_CLR();
+            //_delay_ms(100);
         }
+        sw2_pushed = 1;
     }
 }
 
-ISR(PCINT2_vect)
+static void toggle_mode(void)
 {
-    //If SW1 is configured as PCINT18
+    mode++;
+    mode = mode % NUMBER_OF_MODES;
 }
 
 ISR(INT0_vect) /* SW1 */
@@ -137,23 +204,42 @@ ISR(INT0_vect) /* SW1 */
 
     if (delay >= BREAK_TIME)
     {
-        RELAY_D_SET();
-        _delay_ms(5);
-        RELAY_D_CLR();
+        toggle_mode();
+        LED_SET();
+        _delay_ms(100);
+        LED_CLR();
     } else {
+        sw1_pushed = 1;
     }
 }
 
+ISR(INT1_vect) //CLIND IRQ
+{
+    uint8_t j;
+    for(j = 0; j < 3; j++) {
+        LED_SET();
+        _delay_ms(10);
+        LED_CLR();
+        _delay_ms(50);
+    }
+
+}
+
 /* Debug function */
-static void enable_ext_irq0()
+static void enable_ext_irq()
 {
     /* Ext IRQ 0 */
     EICRA |= (1<<ISC01);        //IRQ on falling edge
     EIMSK |= (1<<INT0);         //Enable INT0
     /* end Ext IRQ 0 */
+
+    /* Ext IRQ 1 */
+    EICRA |= (1<<ISC11) | (1<<ISC10);       //IRQ on rising edge
+    EIMSK |= (1<<INT1);                     //Enable INT1
+    /* End Ext IRQ 1 */
 }
 
-static void enable_pcint18()
+static void enable_pcint18() //This is an alternative to INT0. They are on the same pin
 {
     /* PIN change IRQ */
     //PCICR |= (1<<PCIE2);      //Enable PCINT2 (PCINT23..16)
@@ -169,54 +255,7 @@ static void enable_pcint0()
     /* End PIN change IRQ */
 }
 
-/* IPC Commands */
-enum ipc_command_t
-{
-    IPC_CMD_SUPPORTED_CMDS,
-    IPC_CMD_PERIPH_DETECT,
-    IPC_CMD_NUM_OF_CMDS,
-    IPC_CMD_GET_TEMP,
-    IPC_CMD_GET_VOLTAGE,
-    IPC_CMD_GET_CURRENT
-};
 #define SPI_WAIT() while((SPSR & (1<<SPIF)) != (1<<SPIF))
-    #define IPC_CMD_DATA_AVAILABLE 0x10
-static void print_ipc(const char *str)
-{
-    uint8_t len = strlen(str);
-    SPCR &= ~(1<<SPIE);
-    
-    /* Put CMD in SPI data buffer */
-    SPDR = IPC_CMD_DATA_AVAILABLE;
-
-    /* Signal to master that CMD is available */
-    IRQ_SET();
-    SPI_WAIT();
-    _delay_ms(10); //TODO: Used to debug synchronization. Remove!!
-    IRQ_CLR();
-
-    /* Tell master how many bytes to fetch */
-    SPDR = len+1;
-
-    _delay_ms(10); //TODO: Used to debug synchronization. Remove!!
-    IRQ_SET();
-    SPI_WAIT();
-    _delay_ms(10); //TODO: Used to debug synchronization. Remove!!
-    IRQ_CLR();
-
-    for(uint8_t i = 0; i <= len; i++) {
-        SPDR = str[i];
-        _delay_ms(10); //TODO: Used to debug synchronization. Remove!!
-        IRQ_SET();
-        
-        SPI_WAIT();
-        _delay_ms(10); //TODO: Used to debug synchronization. Remove!!
-        IRQ_CLR();
-        
-    }
- 
-    SPCR |= (1<<SPIE);
-}
 static void init_spi(void)
 {
     UBRR0 = 150; 
@@ -227,13 +266,8 @@ static void init_spi(void)
 
 static uint8_t spi_send(uint8_t xfer)
 {
-    CS_DAC_STR_CLR();
-    _delay_ms(50);
+    while(!(UCSR0A & (1<<UDRE0)));
     UDR0 = xfer;
-    _delay_ms(50);
-    CS_DAC_STR_SET();
-    if(UDR0 == 0)
-        return 'R';
     return UDR0;
 }
 
@@ -242,52 +276,135 @@ int main(void)
     _delay_ms(200);
 
     //SPCR = (1<<SPIE) | (1<<SPE) | (1<<CPHA);
-    enable_ext_irq0();
+    enable_ext_irq();
     enable_pcint18(); 
     enable_pcint0();
     init_spi();
     /* Init LED pins */
     RELAY_D_INIT();
+    RELAY_INIT();
     LED_INIT();
-    RLED_INIT();
+    ZERO_VOLT_INIT();
+    ZERO_STR_INIT();
+
     //IRQ_INIT();
     CS_DAC_STR_INIT();
-    char str[10] = {0};
+    CS_DAC_STR_SET();
+    CS_DAC_STR_CLR();
+    _delay_ms(100);
+    CS_DAC_STR_SET();
+
+    /* ZERO DAC is active low */
+    ZERO_STR_SET();
+    ZERO_VOLT_SET();
+
+    /*
+     * Find out how many 1wire devices that are
+     * connected to the bus. Blink LED as many times.
+     */
+    uint8_t num_dev =  ow_num_devices();
+    uint8_t i;
+    for (i = 0; i < num_dev; i++) {
+        LED_SET();
+        _delay_ms(200);
+        LED_CLR();
+        _delay_ms(400);
+    }
+
     /* Enable global interrupts */    
     STATUS_REGISTER |= (1<<STATUS_REGISTER_IT);
-    uint8_t data1, data2;    
+
     /* Do we need to set MISO as output? */
     DDRB |= (1<<PB4);
-
-    str[0] = 'C';
-    str[1] = 0;
+#define DAC_STEPS 100
     while(1)
     {
-        spi_send(0xCC);
-        spi_send(0x55);
-    }
-    str[3] = '\0';
-    if (data1 != 0)
-        str[1] = data1;
-    if (data1 != 0)
-        str[2] = data2;
-    print_ipc(str);
-    _delay_ms(10);
-_delay_ms(10);
-    //print_ipc(str);//    RLED_SET();
- 
-    while(1)
-    {
-        if (ipc_rcv_buf == IPC_CMD_PERIPH_DETECT) {
-                RLED_SET();
-                SPDR = 0xDE;
-                IRQ_SET();
-                _delay_us(500);
-                IRQ_CLR();
-                RLED_CLR();
-                ipc_rcv_buf = 0;
+        if(sw1_pushed)
+        {
+            switch (mode)
+            {
+                case MODE_1:
+                    current_limit += DAC_STEPS;
+                    LED_SET();
+                    CS_DAC_STR_CLR();
+                        spi_send(current_limit & 0x0F);
+                        spi_send((current_limit>>8));
+                    CS_DAC_STR_SET();
+                    _delay_ms(10);
+                    LED_CLR();
+                break;
+                case MODE_2:
+                    voltage += DAC_STEPS;
+                    RELAY_D_SET();
+                    CS_DAC_VOLT_CLR();
+                    CS_DAC_VOLT_SET();
+                    _delay_ms(10);
+                    RELAY_D_CLR();
+                break;
+                case MODE_3:
+                    RELAY_D_SET();
+                break;
+                case MODE_4:
+                    RELAY_SET();
+                break;
+                case MODE_5:
+                    ZERO_VOLT_CLR();
+                    _delay_us(1);
+                    ZERO_VOLT_SET();
+                break;
+            }
+            sw1_pushed = 0;
         }
-        
+
+        if(sw2_pushed)
+        {
+            switch (mode)
+            {
+                case MODE_1:
+                    current_limit -= DAC_STEPS;
+                    CS_DAC_STR_CLR();
+                    /* Add code to send two bytes to DAC_VOLT */
+                        spi_send(current_limit & 0x0F);
+                        spi_send((current_limit>>8));
+                    CS_DAC_STR_SET();
+                    LED_SET();
+                    _delay_ms(10);
+                    LED_CLR();
+                    _delay_ms(100);
+                    LED_SET();
+                    _delay_ms(10);
+                    LED_CLR();
+                break;
+                case MODE_2:
+                    voltage -= DAC_STEPS;
+                    CS_DAC_VOLT_CLR();
+                    /* Add code to send two bytes to DAC_VOLT */
+                        spi_send(voltage & 0x0F);
+                        spi_send((voltage>>8));
+                    CS_DAC_VOLT_SET();
+                    RELAY_D_SET();
+                    _delay_ms(10);
+                    RELAY_D_CLR();
+                    _delay_ms(100);
+                    RELAY_D_SET();
+                    _delay_ms(10);
+                    RELAY_D_CLR();
+                break;
+                case MODE_3:
+                    RELAY_D_CLR();
+                break;
+                case MODE_4:
+                    RELAY_CLR();
+                break;
+                case MODE_5:
+                    ZERO_STR_CLR();
+                    _delay_us(1);
+                    ZERO_STR_SET();
+                break;
+            }
+            sw2_pushed = 0;
+        }
+
         //ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         //{
         //    SPDR = num_temp_sensors;
@@ -296,4 +413,3 @@ _delay_ms(10);
 
     return 0;
 }
-
