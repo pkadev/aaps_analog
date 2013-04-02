@@ -138,6 +138,8 @@
  * SW2/IRQ, aktiv hög, pulldown, hittar du på PB0 (PCINT0/CLKO/ICP1) OBS SW2/IRQ delas med IRQ dvs du får IRQ på _D också om du trycker på SW2.
  */
 
+#define BREAK_TIME 200
+
 volatile uint8_t ipc_rcv_buf = 0;
 volatile uint8_t num_temp_sensors = 0;
 
@@ -170,6 +172,8 @@ ISR(SPI_STC_vect)
 
 ISR(PCINT0_vect) /* SW2 */
 {
+    uint8_t i;
+    uint8_t delay = 0;
     /*
      * Only do stuff on one edge and debounce.
      * Button may need longer delay if extremely bouncy.
@@ -177,12 +181,20 @@ ISR(PCINT0_vect) /* SW2 */
     if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
         _delay_ms(20); //Debounce delay
         while((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
-            //LED_SET();
-            //_delay_ms(100);
-            //LED_CLR();
-            //_delay_ms(100);
+            _delay_ms(10);
+            if (delay++ == BREAK_TIME) break;
         }
-        sw2_pushed = 1;
+        if (delay >= BREAK_TIME)
+        {
+            for(i = 0; i <= mode; i++) {
+                LED_SET();
+                _delay_ms(100);
+                LED_CLR();
+                _delay_ms(500);
+            }
+        }
+        else
+            sw2_pushed = 1;
     }
 }
 
@@ -194,7 +206,6 @@ static void toggle_mode(void)
 
 ISR(INT0_vect) /* SW1 */
 {
-    #define BREAK_TIME 200
     uint8_t delay = 0;
     _delay_ms(30);
     while ((SW1_IN & (1<<SW1_PIN)) != (1<<SW1_PIN)) {
