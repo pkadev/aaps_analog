@@ -216,7 +216,7 @@ ISR(INT0_vect) /* SW1 */
 ISR(INT1_vect) //CLIND IRQ
 {
     uint8_t j;
-    for(j = 0; j < 3; j++) {
+    for(j = 0; j < 85; j++) {
         LED_SET();
         _delay_ms(10);
         LED_CLR();
