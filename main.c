@@ -1,8 +1,10 @@
+#include <stdio.h>
+#include <string.h>
 #include <stddef.h>
+#include <stdarg.h>
 #include <avr/io.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 #include <util/delay.h>
@@ -106,7 +108,7 @@ ISR(PCINT0_vect) /* SW2 */
      * Button may need longer delay if extremely bouncy.
      */
             LED_SET();
-            _delay_ms(100);
+            //_delay_ms(100);
             LED_CLR();
 
     //if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
@@ -172,44 +174,43 @@ enum ipc_command_t
     IPC_CMD_GET_VOLTAGE,
     IPC_CMD_GET_CURRENT
 };
-#define SPI_WAIT() while((SPSR & (1<<SPIF)) != (1<<SPIF))
+#define SPI_WAIT() while(!(SPSR & (1<<SPIF)))
     #define IPC_CMD_DATA_AVAILABLE 0x10
-static void print_ipc(const char *str)
+static void print_ipc(const char *str, ...)
 {
-    uint8_t len = strlen(str);
+    va_list args;
+    uint8_t len;
+    uint8_t i;
+    char printbuffer[80] = {0};
+
     SPCR &= ~(1<<SPIE);
-    
+    va_start (args, str);
+    vsprintf (printbuffer, str, args);
+    va_end (args);
+    len = strlen(printbuffer);
     /* Put CMD in SPI data buffer */
     SPDR = IPC_CMD_DATA_AVAILABLE;
 
     /* Signal to master that CMD is available */
     IRQ_SET();
     SPI_WAIT();
-    _delay_ms(10); //TODO: Used to debug synchronization. Remove!!
     IRQ_CLR();
 
     /* Tell master how many bytes to fetch */
-    SPDR = len+1;
-
-    _delay_ms(10); //TODO: Used to debug synchronization. Remove!!
-    IRQ_SET();
+    SPDR = len;
     SPI_WAIT();
-    _delay_ms(10); //TODO: Used to debug synchronization. Remove!!
-    IRQ_CLR();
-
-    for(uint8_t i = 0; i <= len; i++) {
-        SPDR = str[i];
-        _delay_ms(10); //TODO: Used to debug synchronization. Remove!!
-        IRQ_SET();
-        
+    for(i = 0; i < len; i++) {
+        SPDR = printbuffer[i];
         SPI_WAIT();
-        _delay_ms(10); //TODO: Used to debug synchronization. Remove!!
-        IRQ_CLR();
-        
     }
- 
     SPCR |= (1<<SPIE);
+    /*
+     * This must be here if you print two times in a row.
+     * Need to figure out why this is!
+     */
+    _delay_ms(25);
 }
+
 static void init_spi(void)
 {
     UBRR0 = 150; 
@@ -232,9 +233,9 @@ static uint8_t spi_send(uint8_t xfer)
 
 int main(void)
 {
-    _delay_ms(200);
-
+   // _delay_ms(200);
     SPCR = (1<<SPIE) | (1<<SPE) | (1<<CPHA);
+    SPSR = (1<<SPI2X);
     enable_ext_irq0();
     enable_pcint18(); 
     enable_pcint0();
@@ -245,42 +246,27 @@ int main(void)
     RLED_INIT();
     IRQ_INIT();
     CS_DAC_STR_INIT();
-    char str[10] = {0};
     /* Enable global interrupts */    
     STATUS_REGISTER |= (1<<STATUS_REGISTER_IT);
-    uint8_t data1, data2;    
     /* Do we need to set MISO as output? */
     DDRB |= (1<<PB4);
+    spi_send(1);
 
-    str[0] = 'C';
-    str[1] = 0;
-    while(1)
-    {
-        spi_send(0xCC);
-        spi_send(0x55);
-    }
-    str[3] = '\0';
-    if (data1 != 0)
-        str[1] = data1;
-    if (data1 != 0)
-        str[2] = data2;
-    print_ipc(str);
-    _delay_ms(10);
-_delay_ms(10);
-    //print_ipc(str);//    RLED_SET();
- 
+    print_ipc("te %u\n", 100);
+    print_ipc("Lo\n");
+    print_ipc("12\n");
+
     while(1)
     {
         if (ipc_rcv_buf == IPC_CMD_PERIPH_DETECT) {
                 RLED_SET();
                 SPDR = 0xDE;
                 IRQ_SET();
-                _delay_us(500);
                 IRQ_CLR();
                 RLED_CLR();
                 ipc_rcv_buf = 0;
         }
-        
+
         //ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         //{
         //    SPDR = num_temp_sensors;
