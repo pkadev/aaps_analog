@@ -3,35 +3,43 @@
 #include "m128_hal.h"
 #include "boot.h"
 
-static void enable_ext_irq0();
+static void enable_ext_irq();
 static void enable_pcint18();
 static void enable_pcint0();
 
 /* These two should probably go somewhere else */
-static void init_mspim(void);
-static void init_spi(void);
+static void mspim_init(void);
+static void spi_init(void);
 /***********************************************/
 aaps_result_t boot(void)
 {
     /* Enable global interrupts */
     STATUS_REGISTER |= (1<<STATUS_REGISTER_IT);
 
+    ZERO_VOLT_INIT();
+    ZERO_STR_INIT();
     IRQ_INIT();
+    RELAY_INIT();
     RELAY_D_INIT();
     LED_INIT();
     CS_DAC_STR_INIT();
+    CS_DAC_VOLT_INIT();
+
+    ZERO_STR_SET();
+    ZERO_VOLT_SET();
+
+    enable_ext_irq();
     if(0)
     {
-        enable_ext_irq0();
         enable_pcint18();
         enable_pcint0();
     }
-    init_spi();
-    init_mspim();
+    spi_init();
+    mspim_init();
     aaps_result_t ret = AAPS_RET_OK;
     return ret;
 }
-static void init_spi(void)
+static void spi_init(void)
 {
     DDRB |= (1<<PB3); //This is MOSI as output?? Remove??
     SPCR = (1<<SPIE) | (1<<SPE) | (1<<CPOL);
@@ -40,13 +48,16 @@ static void init_spi(void)
     DDRB |= (1<<PB4);
 }
 
-static void init_mspim(void)
+static void mspim_init(void)
 {
-    UBRR0 = 150;
+    UBRR0 = 5;
     UCSR0B |= (1<<RXEN0) | (1<<TXEN0);
-    UCSR0C |= (1<<UMSEL01) | (1<<UMSEL00) | (1<<UCPOL0);
-    DDRD |= (1<<PD4);
+    UCSR0C |= (1<<UMSEL01) | (1<<UMSEL00);
+    UCSR0C &= ~(1<<UCPHA0);
+    UCSR0C &= ~(1<<UDORD0);
+    DDRD |= (1<<PD4) | (1<<PD1);
 }
+
 void boot_failed(void)
 {
     while(1) {
@@ -54,12 +65,10 @@ void boot_failed(void)
         _delay_ms(250);
     }
 }
-static void enable_ext_irq0()
+static void enable_ext_irq()
 {
-    /* Ext IRQ 0 */
-    EICRA |= (1<<ISC01);        //IRQ on falling edge
-    EIMSK |= (1<<INT0);         //Enable INT0
-    /* end Ext IRQ 0 */
+    EICRA |= (1<<ISC01) | (1<<ISC10);        //IRQ on falling edge
+    EIMSK |= (1<<INT0) | (1<<INT1);
 }
 
 static void enable_pcint18()

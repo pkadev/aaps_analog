@@ -15,7 +15,9 @@ enum ipc_command_t
     IPC_CMD_GET_TEMP,
     IPC_CMD_GET_VOLTAGE,
     IPC_CMD_GET_CURRENT,
-    IPC_CMD_DATA_AVAILABLE = 0x10, //Get rid of this behaviour
+    IPC_CMD_DATA_AVAILABLE,
+    IPC_CMD_SET_VOLTAGE,
+    IPC_CMD_SET_CURRENT_LIMIT,
 };
 
 struct ipc_packet_t

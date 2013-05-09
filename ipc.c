@@ -78,6 +78,6 @@ void ipc_save_packet(struct ipc_packet_t *dst, size_t len, uint8_t read_ptr)
     dst->crc = *(rx_buf + (read_ptr++ % IPC_RX_BUF_LEN));
 
     packets_available--;
-    LED_TOGGLE();
+    //LED_TOGGLE();
 
 }
