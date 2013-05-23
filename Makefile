@@ -62,6 +62,9 @@ TARGET = main
 SRC = $(TARGET).c
 SRC += boot.c
 SRC += ipc.c
+SRC += mspim.c
+SRC += max1168.c
+
 //SRC += 1wire.c
 
 

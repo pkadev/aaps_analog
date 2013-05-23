@@ -1,6 +1,7 @@
 #ifndef IPC_H__
 #define IPC_H__
 #include <stdint.h>
+#include <stdlib.h>
 
 #define SPI_WAIT() while(!(SPSR & (1<<SPIF)))
 

@@ -2,13 +2,13 @@
 #include <util/delay.h>
 #include "m128_hal.h"
 #include "boot.h"
+#include "mspim.h"
 
 static void enable_ext_irq();
 static void enable_pcint18();
 static void enable_pcint0();
 
 /* These two should probably go somewhere else */
-static void mspim_init(void);
 static void spi_init(void);
 /***********************************************/
 aaps_result_t boot(void)
@@ -35,7 +35,6 @@ aaps_result_t boot(void)
         enable_pcint0();
     }
     spi_init();
-    mspim_init();
     aaps_result_t ret = AAPS_RET_OK;
     return ret;
 }
@@ -48,15 +47,6 @@ static void spi_init(void)
     DDRB |= (1<<PB4);
 }
 
-static void mspim_init(void)
-{
-    UBRR0 = 5;
-    UCSR0B |= (1<<RXEN0) | (1<<TXEN0);
-    UCSR0C |= (1<<UMSEL01) | (1<<UMSEL00);
-    UCSR0C &= ~(1<<UCPHA0);
-    UCSR0C &= ~(1<<UDORD0);
-    DDRD |= (1<<PD4) | (1<<PD1);
-}
 
 void boot_failed(void)
 {

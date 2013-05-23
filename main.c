@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdarg.h>
 #include <avr/io.h>
 #include <stdint.h>
@@ -11,6 +12,8 @@
 #include "m128_hal.h"
 #include "boot.h"
 #include "ipc.h"
+#include "mspim.h"
+#include "max1168.h"
 
 /*
  * SW1, aktiv låg, pullup, hittar du på PD2 (INT0/PCINT18)
@@ -39,16 +42,6 @@ ISR(INT0_vect) /* SW1 */
     //IRQ_CLR(); LED_CLR();
 }
 
-static uint8_t mspim_send(uint8_t xfer)
-{
-    while(!(UCSR0A & (1<<UDRE0)));
-    UDR0 = xfer;
-    while(!(UCSR0A & (1<<TXC0)));
-    while(!(UCSR0A & (1<<RXC0)));
-
-    return UDR0;
-}
-
 
 
 ISR(PCINT0_vect) /* SW2 */
@@ -72,16 +65,29 @@ int main(void)
     if (boot() != AAPS_RET_OK)
         boot_failed(); //Boot has failed
 
-    //spi_send(10);
-
     RELAY_SET();
-    print_ipc("This is a welcome message from aaps_a!\n");
+    {
+        uint16_t init_limit = 100;
+        CS_DAC_STR_CLR();
+        mspim_send((init_limit>>8));
+        mspim_send(init_limit & 0xFF);
+        CS_DAC_STR_SET();
+        write_current_limit((0x15 << 8) | 0x10);
+    }
+    print_ipc("[AAPS_A] Hi!\n");
+    _delay_ms(3000);
+
+    uint16_t adc_val;
 
     while(1)
     {
         static bool critical_error = false;
         if (!critical_error)
         {
+            _delay_ms(200);
+            adc_val = max1168_read_adc(0, MAX1168_CLK_EXTERNAL, MAX1168_MODE_8BIT);
+            print_ipc("ADC: %u\n", adc_val);
+
             if (packets_available)
             {
                 ipc_save_packet(&ipc_packet, IPC_PACKET_LEN, read_ptr);
@@ -91,14 +97,9 @@ int main(void)
                 {
                     case IPC_CMD_SET_VOLTAGE:
                     {
-                        uint16_t data = (ipc_packet.data[1] << 8) | ipc_packet.data[0];
-                        print_ipc("[AAPS_A] VOLTAGE %u\n", data);
                         print_ipc("[AAPS_A] MSB: 0x%02X LSB: 0x%02X\n",
                                   ipc_packet.data[1], ipc_packet.data[0]);
-                        CS_DAC_VOLT_CLR();
-                        mspim_send((data >> 8));
-                        mspim_send(data & 0xFF);
-                        CS_DAC_VOLT_SET();
+                        write_current_limit((ipc_packet.data[1] << 8) | ipc_packet.data[0]);
                     }
                     break;
                     case IPC_CMD_SET_CURRENT_LIMIT:
@@ -106,7 +107,7 @@ int main(void)
                         uint16_t data = (ipc_packet.data[1] << 8) | ipc_packet.data[0];
                         print_ipc("[AAPS_A] I_LIMIT %u\n", data);
                         print_ipc("[AAPS_A] MSB: 0x%02X LSB: 0x%02X\n",
-                                  ipc_packet.data[1], ipc_packet.data[0]);
+                            ipc_packet.data[1], ipc_packet.data[0]);
                         uint16_t current_limit = (ipc_packet.data[1] << 8) | ipc_packet.data[0];
                         CS_DAC_STR_CLR();
                         mspim_send((current_limit>>8));
