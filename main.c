@@ -78,18 +78,15 @@ int main(void)
     _delay_ms(3000);
 
     uint16_t adc_val;
-
+	uint8_t cnt;
     while(1)
     {
         static bool critical_error = false;
         if (!critical_error)
         {
-            _delay_ms(200);
-            adc_val = max1168_read_adc(0, MAX1168_CLK_EXTERNAL, MAX1168_MODE_8BIT);
-            print_ipc("ADC: %u\n", adc_val);
-
             if (packets_available)
             {
+                cnt = 3;
                 ipc_save_packet(&ipc_packet, IPC_PACKET_LEN, read_ptr);
                 read_ptr += IPC_PACKET_LEN;
                 read_ptr %= IPC_RX_BUF_LEN;
@@ -118,10 +115,15 @@ int main(void)
                     default:
                         print_ipc("Unknown packet type: 0x%02X\n", ipc_packet.cmd);
                 }
+				while(cnt--)
+				{
+					//print_ipc("Cnt: %u\n", cnt);
+					//_delay_ms(1);
+					adc_val = max1168_read_adc(0, MAX1168_CLK_EXTERNAL, MAX1168_MODE_8BIT);
+					print_ipc("ADC: %u\n", adc_val);
+				}
             }
-
-        }
-        else {
+        } else {
             print_ipc("Critical error\n");
             LED_CLR();
             while(1);
