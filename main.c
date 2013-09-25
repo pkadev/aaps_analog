@@ -92,6 +92,11 @@ int main(void)
                 read_ptr %= IPC_RX_BUF_LEN;
                 switch(ipc_packet.cmd)
                 {
+                    case IPC_CMD_PERIPH_DETECT:
+                    {
+                        print_ipc("[AAPS_A] Peripheral detect\n");
+                    }
+                    break;
                     case IPC_CMD_SET_VOLTAGE:
                     {
                         print_ipc("[AAPS_A] MSB: 0x%02X LSB: 0x%02X\n",
