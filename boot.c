@@ -20,7 +20,6 @@ aaps_result_t boot(void)
     ZERO_STR_INIT();
     IRQ_INIT();
     RELAY_INIT();
-    RELAY_D_INIT();
     LED_INIT();
     CS_DAC_STR_INIT();
     CS_DAC_VOLT_INIT();
@@ -36,6 +35,7 @@ aaps_result_t boot(void)
     }
     spi_init();
     aaps_result_t ret = AAPS_RET_OK;
+    RELAY_D_INIT();
     return ret;
 }
 static void spi_init(void)

@@ -19,6 +19,8 @@ enum ipc_command_t
     IPC_CMD_DATA_AVAILABLE,
     IPC_CMD_SET_VOLTAGE,
     IPC_CMD_SET_CURRENT_LIMIT,
+    IPC_CMD_SET_RELAY_D,
+    IPC_CMD_SET_RELAY,
 };
 
 struct ipc_packet_t

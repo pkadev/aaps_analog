@@ -62,6 +62,9 @@ ISR(PCINT0_vect) /* SW2 */
 
 int main(void)
 {
+    uint16_t adc_val;
+	uint8_t cnt;
+
     if (boot() != AAPS_RET_OK)
         boot_failed(); //Boot has failed
 
@@ -74,11 +77,9 @@ int main(void)
         CS_DAC_STR_SET();
         write_current_limit((0x15 << 8) | 0x10);
     }
-    print_ipc("[AAPS_A] Hi!\n");
+    print_ipc("[A] Hi!\n");
     _delay_ms(3000);
 
-    uint16_t adc_val;
-	uint8_t cnt;
     while(1)
     {
         static bool critical_error = false;
@@ -94,12 +95,12 @@ int main(void)
                 {
                     case IPC_CMD_PERIPH_DETECT:
                     {
-                        print_ipc("[AAPS_A] Peripheral detect\n");
+                        print_ipc("[A] P detect\n");
                     }
                     break;
                     case IPC_CMD_SET_VOLTAGE:
                     {
-                        print_ipc("[AAPS_A] MSB: 0x%02X LSB: 0x%02X\n",
+                        print_ipc("[A] MSB 0x%02X LSB 0x%02X\n",
                                   ipc_packet.data[1], ipc_packet.data[0]);
                         write_current_limit((ipc_packet.data[1] << 8) | ipc_packet.data[0]);
                     }
@@ -107,29 +108,46 @@ int main(void)
                     case IPC_CMD_SET_CURRENT_LIMIT:
                     {
                         uint16_t data = (ipc_packet.data[1] << 8) | ipc_packet.data[0];
-                        print_ipc("[AAPS_A] I_LIMIT %u\n", data);
-                        print_ipc("[AAPS_A] MSB: 0x%02X LSB: 0x%02X\n",
-                            ipc_packet.data[1], ipc_packet.data[0]);
                         uint16_t current_limit = (ipc_packet.data[1] << 8) | ipc_packet.data[0];
+
+                        print_ipc("[A] I_LIMIT %u\n", data);
+
                         CS_DAC_STR_CLR();
                         mspim_send((current_limit>>8));
                         mspim_send(current_limit & 0xFF);
                         CS_DAC_STR_SET();
                     }
                     break;
+                    case IPC_CMD_SET_RELAY_D:
+                    {
+                        print_ipc("[A] Rel_d %u\n", ipc_packet.data[1]);
+                        if (ipc_packet.data[1])
+                            RELAY_D_SET();
+                        else
+                            RELAY_D_CLR();
+                    }
+                    break;
+                    case IPC_CMD_SET_RELAY:
+                    {
+                        print_ipc("[A] rel\n");
+                        if (ipc_packet.data[1])
+                            RELAY_SET();
+                        else
+                            RELAY_CLR();
+
+                    }
+                    break;
                     default:
-                        print_ipc("Unknown packet type: 0x%02X\n", ipc_packet.cmd);
+                        print_ipc("[A] Unkn packet 0x%02X\n", ipc_packet.cmd);
                 }
 				while(cnt--)
 				{
-					//print_ipc("Cnt: %u\n", cnt);
-					//_delay_ms(1);
 					adc_val = max1168_read_adc(0, MAX1168_CLK_EXTERNAL, MAX1168_MODE_8BIT);
-					print_ipc("ADC: %u\n", adc_val);
+					print_ipc("[A] ADC: %u\n", adc_val);
 				}
             }
         } else {
-            print_ipc("Critical error\n");
+            print_ipc("[A]Critical error\n");
             LED_CLR();
             while(1);
         }
