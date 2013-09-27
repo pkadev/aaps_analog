@@ -64,9 +64,7 @@ SRC += boot.c
 SRC += ipc.c
 SRC += mspim.c
 SRC += max1168.c
-
-//SRC += 1wire.c
-
+SRC += 1wire.c
 
 # List Assembler source files here.
 #     Make them always end in a capital .S.  Files ending in a lowercase .s

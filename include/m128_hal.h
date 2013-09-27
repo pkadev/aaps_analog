@@ -2,12 +2,12 @@
 #define M128_HAL_H__
 #include <avr/io.h>
 /*
- * AVR specific defines 
+ * AVR specific defines
  */
 
 
 /*
- * System defines 
+ * System defines
  */
 #define STATUS_REGISTER         SREG
 #define STATUS_REGISTER_IT      SREG_I

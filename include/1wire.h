@@ -22,9 +22,12 @@ typedef struct {
     uint16_t temp;
     uint16_t dec;
 }ow_temp_t;
+ow_device_t *ow_devices;
+/* Long green  1-Wire D5 00 00 01 28 92 FD 28 */
+/* Short green 1-Wire 9D 00 00 01 9B 38 6F 28 */
 
-/*
- * Public function for 1-Wire
+ /*
+     * Public function for 1-Wire
  */
 uint8_t ow_num_devices();
 void ow_print_device_addr(ow_device_t *ow_device);

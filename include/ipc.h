@@ -5,7 +5,7 @@
 
 #define SPI_WAIT() while(!(SPSR & (1<<SPIF)))
 
-#define IPC_RX_BUF_LEN 160
+#define IPC_RX_BUF_LEN 60
 #define IPC_DATA_LEN 2
 /* IPC Commands */
 enum ipc_command_t

@@ -14,6 +14,7 @@
 #include "ipc.h"
 #include "mspim.h"
 #include "max1168.h"
+#include "1wire.h"
 
 /*
  * SW1, aktiv låg, pullup, hittar du på PD2 (INT0/PCINT18)
@@ -62,11 +63,11 @@ ISR(PCINT0_vect) /* SW2 */
 
 int main(void)
 {
-    uint16_t adc_val;
+    //uint16_t adc_val;
 	uint8_t cnt;
 
     if (boot() != AAPS_RET_OK)
-        boot_failed(); //Boot has failed
+        boot_failed();
 
     RELAY_SET();
     {
@@ -77,8 +78,12 @@ int main(void)
         CS_DAC_STR_SET();
         write_current_limit((0x15 << 8) | 0x10);
     }
-    print_ipc("[A] Hi!\n");
-    _delay_ms(3000);
+ //   print_ipc("[A] Hi!\n");
+//    _delay_ms(3000);
+
+    ow_temp_t temp;
+
+    ow_device_t dev = { .addr = { 0x28, 0xFD, 0x92, 0x28, 0x01, 0x00, 0x00, 0xD5 }};
 
     while(1)
     {
@@ -93,6 +98,13 @@ int main(void)
                 read_ptr %= IPC_RX_BUF_LEN;
                 switch(ipc_packet.cmd)
                 {
+                    case IPC_CMD_GET_TEMP:
+                    {
+                        if (ow_read_temperature(&dev, &temp) == OW_RET_OK)
+                        print_ipc("[A] Ch:%u %u.%u\n", ipc_packet.data[1],
+                                  temp.temp, temp.dec);
+                    }
+                    break;
                     case IPC_CMD_PERIPH_DETECT:
                     {
                         print_ipc("[A] P detect\n");
@@ -140,11 +152,11 @@ int main(void)
                     default:
                         print_ipc("[A] Unkn packet 0x%02X\n", ipc_packet.cmd);
                 }
-				while(cnt--)
-				{
-					adc_val = max1168_read_adc(0, MAX1168_CLK_EXTERNAL, MAX1168_MODE_8BIT);
-					print_ipc("[A] ADC: %u\n", adc_val);
-				}
+				//while(cnt--)
+				//{
+				//	adc_val = max1168_read_adc(0, MAX1168_CLK_EXTERNAL, MAX1168_MODE_8BIT);
+				//	print_ipc("[A] ADC: %u\n", adc_val);
+				//}
             }
         } else {
             print_ipc("[A]Critical error\n");

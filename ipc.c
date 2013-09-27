@@ -68,9 +68,6 @@ void print_ipc(const char *str, ...)
 
 void ipc_save_packet(struct ipc_packet_t *dst, size_t len, uint8_t read_ptr)
 {
-    //uint8_t i = 0;
-    //print_ipc("%u\n", read_ptr);
-    //print_ipc("0x%x\n", *(src + read_ptr));
     dst->cmd = *(rx_buf + (read_ptr++ % IPC_RX_BUF_LEN));
     dst->len = *(rx_buf + (read_ptr++ % IPC_RX_BUF_LEN));
     dst->data[0] = *(rx_buf + (read_ptr++ % IPC_RX_BUF_LEN));
@@ -78,6 +75,4 @@ void ipc_save_packet(struct ipc_packet_t *dst, size_t len, uint8_t read_ptr)
     dst->crc = *(rx_buf + (read_ptr++ % IPC_RX_BUF_LEN));
 
     packets_available--;
-    //LED_TOGGLE();
-
 }
