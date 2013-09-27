@@ -8,7 +8,6 @@
  */
 #define OW_CMD55_MATCH_ROM 0x55
 #define OW_CMD44_CONV_TEMP 0x44
-#define OW_CMDCC_SKIP_ROM 0xCC
 #define OW_CMDBE_READ_SCRATCHPAD 0xBE
 
 #define DQ_PORT PORTB
@@ -22,15 +21,7 @@
 #define CRC8INIT    0x00
 #define CRC8POLY    0x18    //0X18 = X^8+X^5+X^4+X^0
 
-#define OW_ROM_BIT_LEN 64
 #define THERM_DECIMAL_STEPS_12BIT 625
-
-// global search state
-uint8_t LastDiscrepancy;
-uint8_t LastFamilyDiscrepancy;
-uint8_t LastDeviceFlag;
-uint8_t crc8_var;
-uint8_t ROM_NO[OW_ROM_BYTE_LEN];
 
 static uint8_t ow_read_bit(void);
 static void ow_write_bit(uint8_t bitval);
@@ -100,7 +91,7 @@ static uint8_t ow_reset(void)
     if ((DQ_PIN & DQ_MASK) == 0) {
         ret_val = 1;
     }
-    _delay_us(240); 
+    _delay_us(240);
     return ret_val;
 }
 

@@ -83,7 +83,18 @@ int main(void)
 
     ow_temp_t temp;
 
-    ow_device_t dev = { .addr = { 0x28, 0xFD, 0x92, 0x28, 0x01, 0x00, 0x00, 0xD5 }};
+    ow_device_t sensor0 =
+    { .addr =
+      {
+        0x28, 0xFD, 0x92, 0x28, 0x01, 0x00, 0x00, 0xD5
+      }
+    };
+    ow_device_t sensor1 =
+    { .addr =
+      {
+        0x28, 0x6F, 0x38, 0x9B, 0x01, 0x00, 0x00, 0x9D
+      }
+    };
 
     while(1)
     {
@@ -100,9 +111,18 @@ int main(void)
                 {
                     case IPC_CMD_GET_TEMP:
                     {
-                        if (ow_read_temperature(&dev, &temp) == OW_RET_OK)
-                        print_ipc("[A] Ch:%u %u.%u\n", ipc_packet.data[1],
-                                  temp.temp, temp.dec);
+                        if (ipc_packet.data[1] == 0)
+                        {
+                            if (ow_read_temperature(&sensor0, &temp) == OW_RET_OK)
+                            print_ipc("[A] Ch:%u %u.%u\n", ipc_packet.data[1],
+                                      temp.temp, temp.dec);
+                        }
+                        else if (ipc_packet.data[1] == 1)
+                        {
+                            if (ow_read_temperature(&sensor1, &temp) == OW_RET_OK)
+                            print_ipc("[A] Ch:%u %u.%u\n", ipc_packet.data[1],
+                                      temp.temp, temp.dec);
+                        }
                     }
                     break;
                     case IPC_CMD_PERIPH_DETECT:
