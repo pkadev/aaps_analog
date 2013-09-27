@@ -3,6 +3,16 @@
 #include "mspim.h"
 #include "m128_hal.h"
 
+static uint8_t mspim_send(uint8_t xfer)
+{
+    while(!(UCSR0A & (1<<UDRE0)));
+    UDR0 = xfer;
+    while(!(UCSR0A & (1<<TXC0)));
+    while(!(UCSR0A & (1<<RXC0)));
+
+    return UDR0;
+}
+
 static void dac_init(void)
 {
     UBRR0 = 5;
@@ -13,24 +23,24 @@ static void dac_init(void)
     DDRD |= (1<<PD4) | (1<<PD1);
 }
 
-void write_current_limit(uint16_t limit)
+void write_voltage(uint8_t v_high, uint8_t v_low)
 {
     dac_init();
 
-    CS_DAC_VOLT_CLR();
-    mspim_send((limit >> 8));
-    mspim_send(limit & 0xFF);
-    CS_DAC_VOLT_SET();
+    CS_DAC_CLR(CS_DAC_VOLT_PIN);
+    mspim_send(v_high);
+    mspim_send(v_low);
+    CS_DAC_SET(CS_DAC_VOLT_PIN);
 
 }
-uint8_t mspim_send(uint8_t xfer)
+
+void write_current_limit(uint8_t i_high, uint8_t i_low)
 {
     dac_init();
-    while(!(UCSR0A & (1<<UDRE0)));
-    UDR0 = xfer;
-    while(!(UCSR0A & (1<<TXC0)));
-    while(!(UCSR0A & (1<<RXC0)));
 
-    return UDR0;
+    CS_DAC_CLR(CS_DAC_STR_PIN);
+    mspim_send(i_high);
+    mspim_send(i_low);
+    CS_DAC_SET(CS_DAC_STR_PIN);
+
 }
-

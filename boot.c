@@ -21,8 +21,8 @@ aaps_result_t boot(void)
     IRQ_INIT();
     RELAY_INIT();
     LED_INIT();
-    CS_DAC_STR_INIT();
-    CS_DAC_VOLT_INIT();
+    CS_DAC_INIT(CS_DAC_STR_PIN);
+    CS_DAC_INIT(CS_DAC_VOLT_PIN);
 
     ZERO_STR_SET();
     ZERO_VOLT_SET();

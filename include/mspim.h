@@ -2,15 +2,7 @@
 #define MSPIM_H__
 #include <stdint.h>
 
-struct spi_dev_t
-{
-    void (*enable)(void);
-    void (*disable)(void);
-    void (*init)(void);
-    uint8_t (*xfer)(uint8_t tx);
-};
-
-uint8_t mspim_send(uint8_t xfer);
-void write_current_limit(uint16_t limit);
+void write_voltage(uint8_t v_high, uint8_t v_low);
+void write_current_limit(uint8_t i_high, uint8_t i_low);
 
 #endif

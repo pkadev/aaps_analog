@@ -50,23 +50,16 @@
 #define SW2_WAIT_UNTILL_PRESSED() while((SW2_IN & (1<<SW2_PIN))==0){}
 /* end SW2 defines */
 
-/* DAC Current defines */
+/* DAC defines */
 #define CS_DAC_STR_PIN 3
-#define CS_DAC_STR_DDR DDRC
-#define CS_DAC_STR_PORT PORTC
-#define CS_DAC_STR_INIT() (CS_DAC_STR_DDR|=(1<<CS_DAC_STR_PIN))
-#define CS_DAC_STR_SET() (CS_DAC_STR_PORT|=(1<<CS_DAC_STR_PIN))
-#define CS_DAC_STR_CLR() (CS_DAC_STR_PORT&=~(1<<CS_DAC_STR_PIN))
-/* End DAC current defines */
-
-/* DAC Voltage defines */
 #define CS_DAC_VOLT_PIN 4
-#define CS_DAC_VOLT_DDR DDRC
-#define CS_DAC_VOLT_PORT PORTC
-#define CS_DAC_VOLT_INIT() (CS_DAC_VOLT_DDR|=(1<<CS_DAC_VOLT_PIN))
-#define CS_DAC_VOLT_SET() (CS_DAC_VOLT_PORT|=(1<<CS_DAC_VOLT_PIN))
-#define CS_DAC_VOLT_CLR() (CS_DAC_VOLT_PORT&=~(1<<CS_DAC_VOLT_PIN))
-/* End DAC Voltage define */
+#define DAC_DDR DDRC
+#define DAC_PORT PORTC
+
+#define CS_DAC_INIT(pin) (DAC_DDR|=(1<<pin))
+#define CS_DAC_SET(pin) (DAC_PORT|=(1<<pin))
+#define CS_DAC_CLR(pin) (DAC_PORT&=~(1<<pin))
+/* End DAC defines */
 
 /* Zero STR defines */
 #define ZERO_STR_PIN 1

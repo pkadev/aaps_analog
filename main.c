@@ -21,7 +21,6 @@
  * SW2/IRQ, aktiv hög, pulldown, hittar du på PB0 (PCINT0/CLKO/ICP1) OBS SW2/IRQ delas med IRQ dvs du får IRQ på _D också om du trycker på SW2.
  */
 
-volatile uint8_t num_temp_sensors = 0;
 struct ipc_packet_t ipc_packet = {0};
 volatile uint8_t read_ptr = 0;
 
@@ -69,17 +68,11 @@ int main(void)
     if (boot() != AAPS_RET_OK)
         boot_failed();
 
-    RELAY_SET();
-    {
-        uint16_t init_limit = 100;
-        CS_DAC_STR_CLR();
-        mspim_send((init_limit>>8));
-        mspim_send(init_limit & 0xFF);
-        CS_DAC_STR_SET();
-        write_current_limit((0x15 << 8) | 0x10);
-    }
- //   print_ipc("[A] Hi!\n");
-//    _delay_ms(3000);
+    write_current_limit(10, 0);
+    write_voltage(0x15 , 0x10);
+
+    //print_ipc("[A] Hi!\n");
+    //_delay_ms(3000);
 
     ow_temp_t temp;
 
@@ -107,6 +100,7 @@ int main(void)
                 ipc_save_packet(&ipc_packet, IPC_PACKET_LEN, read_ptr);
                 read_ptr += IPC_PACKET_LEN;
                 read_ptr %= IPC_RX_BUF_LEN;
+
                 switch(ipc_packet.cmd)
                 {
                     case IPC_CMD_GET_TEMP:
@@ -123,52 +117,38 @@ int main(void)
                             print_ipc("[A] Ch:%u %u.%u\n", ipc_packet.data[1],
                                       temp.temp, temp.dec);
                         }
-                    }
-                    break;
+                    } break;
                     case IPC_CMD_PERIPH_DETECT:
                     {
                         print_ipc("[A] P detect\n");
-                    }
-                    break;
+                    } break;
                     case IPC_CMD_SET_VOLTAGE:
                     {
-                        print_ipc("[A] MSB 0x%02X LSB 0x%02X\n",
-                                  ipc_packet.data[1], ipc_packet.data[0]);
-                        write_current_limit((ipc_packet.data[1] << 8) | ipc_packet.data[0]);
-                    }
-                    break;
+                        write_voltage(ipc_packet.data[1],
+                                      ipc_packet.data[0]);
+                    } break;
                     case IPC_CMD_SET_CURRENT_LIMIT:
                     {
-                        uint16_t data = (ipc_packet.data[1] << 8) | ipc_packet.data[0];
-                        uint16_t current_limit = (ipc_packet.data[1] << 8) | ipc_packet.data[0];
-
-                        print_ipc("[A] I_LIMIT %u\n", data);
-
-                        CS_DAC_STR_CLR();
-                        mspim_send((current_limit>>8));
-                        mspim_send(current_limit & 0xFF);
-                        CS_DAC_STR_SET();
-                    }
-                    break;
+                        write_current_limit(ipc_packet.data[1],
+                                            ipc_packet.data[0]);
+                    } break;
                     case IPC_CMD_SET_RELAY_D:
                     {
-                        print_ipc("[A] Rel_d %u\n", ipc_packet.data[1]);
+                        //print_ipc("[A] Rel_d %u\n", ipc_packet.data[1]);
                         if (ipc_packet.data[1])
                             RELAY_D_SET();
                         else
                             RELAY_D_CLR();
-                    }
-                    break;
+                    } break;
                     case IPC_CMD_SET_RELAY:
                     {
-                        print_ipc("[A] rel\n");
+                        //print_ipc("[A] rel\n");
                         if (ipc_packet.data[1])
                             RELAY_SET();
                         else
                             RELAY_CLR();
 
-                    }
-                    break;
+                    } break;
                     default:
                         print_ipc("[A] Unkn packet 0x%02X\n", ipc_packet.cmd);
                 }
