@@ -62,7 +62,6 @@ ISR(PCINT0_vect) /* SW2 */
 
 int main(void)
 {
-    //uint16_t adc_val;
 	uint8_t cnt;
 
     if (boot() != AAPS_RET_OK)
@@ -132,6 +131,25 @@ int main(void)
                         write_current_limit(ipc_packet.data[1],
                                             ipc_packet.data[0]);
                     } break;
+                    case IPC_CMD_GET_VOLTAGE:
+                    {
+                        int8_t ch = ipc_packet.data[1];
+                        if (ch >= ADC_CH0 && ch <= ADC_CH7)
+                        {
+                            uint16_t adc_val[3];
+                            print_ipc("[A] Get voltage a_ch: %u\n",
+                                      ipc_packet.data[1]);
+
+                            while(cnt--)
+                            {
+                                adc_val[cnt] = max1168_read_adc(ch, MAX1168_CLK_EXTERNAL,
+                                                           MAX1168_MODE_8BIT);
+                            }
+                            print_ipc("[A] ADC: %u\n", adc_val[2]);
+                            print_ipc("[A] ADC: %u\n", adc_val[1]);
+                            print_ipc("[A] ADC: %u\n", adc_val[0]);
+                        }
+                    } break;
                     case IPC_CMD_SET_RELAY_D:
                     {
                         //print_ipc("[A] Rel_d %u\n", ipc_packet.data[1]);
@@ -152,11 +170,6 @@ int main(void)
                     default:
                         print_ipc("[A] Unkn packet 0x%02X\n", ipc_packet.cmd);
                 }
-				//while(cnt--)
-				//{
-				//	adc_val = max1168_read_adc(0, MAX1168_CLK_EXTERNAL, MAX1168_MODE_8BIT);
-				//	print_ipc("[A] ADC: %u\n", adc_val);
-				//}
             }
         } else {
             print_ipc("[A]Critical error\n");

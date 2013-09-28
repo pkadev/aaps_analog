@@ -29,18 +29,8 @@ static void max1168_init(void)
     CS_HIGH();
 }
 
-//static uint8_t max1168_xfer_byte(uint8_t tx)
-//{
-//    while(!(UCSR0A & (1<<UDRE0)));
-//    UDR0 = tx;
-//    while(!(UCSR0A & (1<<TXC0)));
-//    while(!(UCSR0A & (1<<RXC0)));
-//
-//    return UDR0;
-//}
-uint8_t mspim_send2(uint8_t xfer)
+static uint8_t mspim_send(uint8_t xfer)
 {
-//    dac_init();
     while(!(UCSR0A & (1<<UDRE0)));
     UDR0 = xfer;
     while(!(UCSR0A & (1<<TXC0)));
@@ -49,26 +39,23 @@ uint8_t mspim_send2(uint8_t xfer)
     return UDR0;
 }
 
-uint16_t max1168_mean(enum max1168_channel ch, uint8_t samples)
-{
-    uint32_t tmp = 0;
-    uint8_t i;
-#define MAX_ALLOWED_SAMPLES 10
-    if (samples > MAX_ALLOWED_SAMPLES)
-        return 0;
+//uint16_t max1168_mean(enum max1168_channel ch, uint8_t samples)
+//{
+//    uint32_t tmp = 0;
+//    uint8_t i;
+//#define MAX_ALLOWED_SAMPLES 10
+//    if (samples > MAX_ALLOWED_SAMPLES)
+//        return 0;
+//
+//    for (i = 0; i < samples; i++) {
+//       tmp += max1168_read_adc(SPI_DUMMY_BYTE, MAX1168_CLK_EXTERNAL, MAX1168_MODE_8BIT);
+//    }
+//    tmp /= samples;
+//    return (uint16_t)tmp;
+//}
 
-    for (i = 0; i < samples; i++) {
-       tmp += max1168_read_adc(SPI_DUMMY_BYTE, MAX1168_CLK_EXTERNAL, MAX1168_MODE_8BIT);
-    }
-    tmp /= samples;
-    return (uint16_t)tmp;
-}
-
-uint16_t max1168_read_adc(uint8_t reg, enum max1168_clk clk, enum max1168_mode mode)
+uint16_t max1168_read_adc(enum max1168_channel_t channel, enum max1168_clk clk, enum max1168_mode mode)
 {
-    #define CH2 0x40
-    #define CH1 0x20
-    #define CH0 0x00
     uint16_t raw_data;
     max1168_init();
 
@@ -80,13 +67,13 @@ uint16_t max1168_read_adc(uint8_t reg, enum max1168_clk clk, enum max1168_mode m
     CS_LOW();
     //_delay_ms(10);
     /* TODO: remove hardcoded channel */
-    mspim_send2(CH0 | 0);
+    mspim_send((channel << 5) | 0);
 
     //if (clk == MAX1168_CLK_INTERNAL)
     //    while ((EOC_PIN & (1<<EOC)));
 
-    raw_data = mspim_send2(SPI_DUMMY_BYTE) << 8;
-    raw_data |= mspim_send2(SPI_DUMMY_BYTE);
+    raw_data = mspim_send(SPI_DUMMY_BYTE) << 8;
+    raw_data |= mspim_send(SPI_DUMMY_BYTE);
     CS_HIGH();
 
     return raw_data;
