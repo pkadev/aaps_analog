@@ -45,8 +45,6 @@ void print_ipc_int(const char *str, unsigned int integer);
 void send_ipc_temp(ow_temp_t *temp);
 void send_ipc_adc_value(uint16_t adc_value, enum ipc_data_type_t type);
 
-bool is_current_meas(enum max1168_channel_t ch);
-
 #define IPC_PACKET_LEN sizeof(struct ipc_packet_t)
 
 #endif

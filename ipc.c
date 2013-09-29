@@ -32,13 +32,6 @@ ISR(SPI_STC_vect)
 }
 
 volatile uint8_t packets_available = 0;
-bool is_current_meas(enum max1168_channel_t ch)
-{
-    if (ch == ADC_CH2 || ch == ADC_CH6)
-        return true;
-    else
-        return false;
-}
 
 void send_ipc_temp(ow_temp_t *temp)
 {

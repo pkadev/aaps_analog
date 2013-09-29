@@ -1,6 +1,7 @@
 #ifndef M128_HAL_H__
 #define M128_HAL_H__
 #include <avr/io.h>
+/* TODO: Rename this file to m48 or something */
 /*
  * AVR specific defines
  */
@@ -11,6 +12,9 @@
  */
 #define STATUS_REGISTER         SREG
 #define STATUS_REGISTER_IT      SREG_I
+
+#define RELAY_D_ID              0x00
+#define RELAY_ID                0x01
 /*
  * Defines for Watchdog
  */

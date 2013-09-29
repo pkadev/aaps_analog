@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdarg.h>
 #include <avr/io.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -14,8 +13,7 @@
 #include "ipc.h"
 #include "mspim.h"
 #include "max1168.h"
-#include "1wire.h"
-
+#include "cmd_exec.h"
 /*
  * SW1, aktiv låg, pullup, hittar du på PD2 (INT0/PCINT18)
  * SW2/IRQ, aktiv hög, pulldown, hittar du på PB0 (PCINT0/CLKO/ICP1)
@@ -43,8 +41,6 @@ ISR(INT0_vect) /* SW1 */
     //IRQ_CLR(); LED_CLR();
 }
 
-
-
 ISR(PCINT0_vect) /* SW2 */
 {
     /*
@@ -63,31 +59,14 @@ ISR(PCINT0_vect) /* SW2 */
 
 int main(void)
 {
-	uint8_t cnt;
-
     if (boot() != AAPS_RET_OK)
         boot_failed();
 
-    write_current_limit(10, 0);
-    write_voltage(0x15 , 0x10);
-
-    //print_ipc("[A] Hi!\n");
-    //_delay_ms(3000);
-
-    ow_temp_t temp;
-
-    ow_device_t sensor0 =
-    { .addr =
-      {
-        0x28, 0xFD, 0x92, 0x28, 0x01, 0x00, 0x00, 0xD5
-      }
-    };
-    ow_device_t sensor1 =
-    { .addr =
-      {
-        0x28, 0x6F, 0x38, 0x9B, 0x01, 0x00, 0x00, 0x9D
-      }
-    };
+    /*
+     * Read channel if from eeprom? Or say hello with type
+     * of peripheral?
+     */
+    print_ipc_int("[A] Hi from channel id: ", 1);
 
     while(1)
     {
@@ -96,7 +75,6 @@ int main(void)
         {
             if (packets_available)
             {
-                cnt = 3;
                 ipc_save_packet(&ipc_packet, IPC_PACKET_LEN, read_ptr);
                 read_ptr += IPC_PACKET_LEN;
                 read_ptr %= IPC_RX_BUF_LEN;
@@ -104,71 +82,28 @@ int main(void)
                 switch(ipc_packet.cmd)
                 {
                     case IPC_CMD_GET_TEMP:
-                    {
-                        if (ipc_packet.data[1] == 0)
-                            ow_read_temperature(&sensor0, &temp);
-                        else if (ipc_packet.data[1] == 1)
-                            ow_read_temperature(&sensor1, &temp);
-                        send_ipc_temp(&temp);
-                    } break;
+                        cmd_exec_get_temp(&ipc_packet);
+                        break;
                     case IPC_CMD_PERIPH_DETECT:
-                    {
                         print_ipc("[A] P detect\n");
-                    } break;
+                        break;
                     case IPC_CMD_SET_VOLTAGE:
-                    {
-                        write_voltage(ipc_packet.data[1],
-                                      ipc_packet.data[0]);
-                    } break;
+                        write_voltage(ipc_packet.data[1], ipc_packet.data[0]);
+                        break;
                     case IPC_CMD_SET_CURRENT_LIMIT:
-                    {
-                        write_current_limit(ipc_packet.data[1],
-                                            ipc_packet.data[0]);
-                    } break;
+                        write_current_limit(ipc_packet.data[1], ipc_packet.data[0]);
+                        break;
                     case IPC_CMD_GET_ADC:
-                    {
-
-                        // Find out which channels are current and which are voltage
-                        int8_t ch = ipc_packet.data[1];
-                        if (ch >= ADC_CH0 && ch <= ADC_CH7)
-                        {
-                            uint16_t adc_val[3];
-                            uint8_t type;
-                            while(cnt--)
-                            {
-                                adc_val[cnt] =
-                                    max1168_read_adc(ch,
-                                                     MAX1168_CLK_EXTERNAL,
-                                                     MAX1168_MODE_8BIT);
-                            }
-
-                            type = is_current_meas(ch) ? IPC_DATA_CURRENT :
-                                                         IPC_DATA_VOLTAGE;
-                            send_ipc_adc_value(adc_val[2], type);
-                            send_ipc_adc_value(adc_val[1], type);
-                            send_ipc_adc_value(adc_val[0], type);
-                        }
-                    } break;
+                        cmd_exec_get_adc(&ipc_packet);
+                        break;
                     case IPC_CMD_SET_RELAY_D:
-                    {
-                        //print_ipc("[A] Rel_d %u\n", ipc_packet.data[1]);
-                        if (ipc_packet.data[1])
-                            RELAY_D_SET();
-                        else
-                            RELAY_D_CLR();
-                    } break;
+                        cmd_exec_ctrl_relay(&ipc_packet, RELAY_D_ID);
+                        break;
                     case IPC_CMD_SET_RELAY:
-                    {
-                        //print_ipc("[A] rel\n");
-                        if (ipc_packet.data[1])
-                            RELAY_SET();
-                        else
-                            RELAY_CLR();
-
-                    } break;
+                        cmd_exec_ctrl_relay(&ipc_packet, RELAY_ID);
+                        break;
                     default:
-                        print_ipc("[A] Unkn packet\n");
-                        //print_ipc("[A] Unkn packet 0x%02X\n", ipc_packet.cmd);
+                        print_ipc_int("[A] Unknown ipc command 0x", ipc_packet.cmd);
                         read_ptr = 0;
                 }
             }
@@ -177,12 +112,7 @@ int main(void)
             LED_CLR();
             while(1);
         }
-        //ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-        //{
-        //    SPDR = num_temp_sensors;
-        //}
     }
-
     return 0; //Should never get here
 }
 

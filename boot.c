@@ -36,6 +36,13 @@ aaps_result_t boot(void)
     spi_init();
     aaps_result_t ret = AAPS_RET_OK;
     RELAY_D_INIT();
+    /*
+     * Change this to read settings. Or check if Settings
+     * should be applied on startup
+     */
+    write_current_limit(10, 0);
+    write_voltage(0x15 , 0x10);
+
     return ret;
 }
 static void spi_init(void)
