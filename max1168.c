@@ -2,6 +2,7 @@
 #include "max1168.h"
 #include "mspim.h"
 #include <util/delay.h>
+#include "ipc.h"
 
 /* Hardware dependent defines */
 #define MAX1168_CS_DDR          DDRC
@@ -39,7 +40,7 @@ static uint8_t mspim_send(uint8_t xfer)
     return UDR0;
 }
 
-//uint16_t max1168_mean(enum max1168_channel ch, uint8_t samples)
+//uint16_t max1168_mean(enum max1168_channel_t ch, uint8_t samples)
 //{
 //    uint32_t tmp = 0;
 //    uint8_t i;
@@ -48,27 +49,24 @@ static uint8_t mspim_send(uint8_t xfer)
 //        return 0;
 //
 //    for (i = 0; i < samples; i++) {
-//       tmp += max1168_read_adc(SPI_DUMMY_BYTE, MAX1168_CLK_EXTERNAL, MAX1168_MODE_8BIT);
+//       tmp += max1168_read_adc(SPI_DUMMY_BYTE, MAX1168_CLK_EXTERNAL,
+//                               MAX1168_MODE_8BIT);
 //    }
 //    tmp /= samples;
 //    return (uint16_t)tmp;
 //}
 
-uint16_t max1168_read_adc(enum max1168_channel_t channel, enum max1168_clk clk, enum max1168_mode mode)
+uint16_t max1168_read_adc(enum max1168_channel_t channel, enum max1168_clk clk,
+                          enum max1168_mode mode)
 {
     uint16_t raw_data;
     max1168_init();
 
-    //if (mode == MAX1168_MODE_8BIT)
-    //    PORTB &= ~(1<<DSEL);
-    //else
-    //    PORTB |= (1<<DSEL);
-
     CS_LOW();
-    //_delay_ms(10);
-    /* TODO: remove hardcoded channel */
+
     mspim_send((channel << 5) | 0);
 
+    /* TODO: Check if we we need to use internal clock */
     //if (clk == MAX1168_CLK_INTERNAL)
     //    while ((EOC_PIN & (1<<EOC)));
 

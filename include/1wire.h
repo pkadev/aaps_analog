@@ -19,8 +19,8 @@ typedef struct {
 }ow_scratchpad_t;
 
 typedef struct {
-    uint16_t temp;
-    uint16_t dec;
+    uint8_t temp;
+    uint8_t dec;
 }ow_temp_t;
 ow_device_t *ow_devices;
 /* Long green  1-Wire D5 00 00 01 28 92 FD 28 */

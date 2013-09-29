@@ -18,7 +18,8 @@
 
 /*
  * SW1, aktiv låg, pullup, hittar du på PD2 (INT0/PCINT18)
- * SW2/IRQ, aktiv hög, pulldown, hittar du på PB0 (PCINT0/CLKO/ICP1) OBS SW2/IRQ delas med IRQ dvs du får IRQ på _D också om du trycker på SW2.
+ * SW2/IRQ, aktiv hög, pulldown, hittar du på PB0 (PCINT0/CLKO/ICP1)
+ * OBS SW2/IRQ delas med IRQ dvs du får IRQ på _D också om du trycker på SW2.
  */
 
 struct ipc_packet_t ipc_packet = {0};
@@ -28,7 +29,7 @@ ISR(PCINT2_vect) { /*If SW1 is configured as PCINT18 */ }
 
 ISR(INT1_vect)
 {
-    print_ipc("CLIND %u\n", (PIND & (1<<PD3)) >> PD3);
+    print_ipc_int("CLIND ",(PIND & (1<<PD3)) >> PD3);
     if (PIND & (1<<PD3))
         LED_SET();
     else
@@ -105,17 +106,10 @@ int main(void)
                     case IPC_CMD_GET_TEMP:
                     {
                         if (ipc_packet.data[1] == 0)
-                        {
-                            if (ow_read_temperature(&sensor0, &temp) == OW_RET_OK)
-                            print_ipc("[A] Ch:%u %u.%u\n", ipc_packet.data[1],
-                                      temp.temp, temp.dec);
-                        }
+                            ow_read_temperature(&sensor0, &temp);
                         else if (ipc_packet.data[1] == 1)
-                        {
-                            if (ow_read_temperature(&sensor1, &temp) == OW_RET_OK)
-                            print_ipc("[A] Ch:%u %u.%u\n", ipc_packet.data[1],
-                                      temp.temp, temp.dec);
-                        }
+                            ow_read_temperature(&sensor1, &temp);
+                        send_ipc_temp(&temp);
                     } break;
                     case IPC_CMD_PERIPH_DETECT:
                     {
@@ -131,23 +125,28 @@ int main(void)
                         write_current_limit(ipc_packet.data[1],
                                             ipc_packet.data[0]);
                     } break;
-                    case IPC_CMD_GET_VOLTAGE:
+                    case IPC_CMD_GET_ADC:
                     {
+
+                        // Find out which channels are current and which are voltage
                         int8_t ch = ipc_packet.data[1];
                         if (ch >= ADC_CH0 && ch <= ADC_CH7)
                         {
                             uint16_t adc_val[3];
-                            print_ipc("[A] Get voltage a_ch: %u\n",
-                                      ipc_packet.data[1]);
-
+                            uint8_t type;
                             while(cnt--)
                             {
-                                adc_val[cnt] = max1168_read_adc(ch, MAX1168_CLK_EXTERNAL,
-                                                           MAX1168_MODE_8BIT);
+                                adc_val[cnt] =
+                                    max1168_read_adc(ch,
+                                                     MAX1168_CLK_EXTERNAL,
+                                                     MAX1168_MODE_8BIT);
                             }
-                            print_ipc("[A] ADC: %u\n", adc_val[2]);
-                            print_ipc("[A] ADC: %u\n", adc_val[1]);
-                            print_ipc("[A] ADC: %u\n", adc_val[0]);
+
+                            type = is_current_meas(ch) ? IPC_DATA_CURRENT :
+                                                         IPC_DATA_VOLTAGE;
+                            send_ipc_adc_value(adc_val[2], type);
+                            send_ipc_adc_value(adc_val[1], type);
+                            send_ipc_adc_value(adc_val[0], type);
                         }
                     } break;
                     case IPC_CMD_SET_RELAY_D:
@@ -168,7 +167,9 @@ int main(void)
 
                     } break;
                     default:
-                        print_ipc("[A] Unkn packet 0x%02X\n", ipc_packet.cmd);
+                        print_ipc("[A] Unkn packet\n");
+                        //print_ipc("[A] Unkn packet 0x%02X\n", ipc_packet.cmd);
+                        read_ptr = 0;
                 }
             }
         } else {
