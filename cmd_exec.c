@@ -1,5 +1,6 @@
 #include "cmd_exec.h"
 #include "m128_hal.h"
+#include "max1168.h"
 
 #define THERMO_SENSOR_0     0x00
 #define THERMO_SENSOR_1     0x01
@@ -36,24 +37,23 @@ aaps_result_t cmd_exec_get_temp(struct ipc_packet_t *packet)
 aaps_result_t cmd_exec_get_adc(struct ipc_packet_t *packet)
 {
     uint8_t type;
-    uint16_t adc_val[3];
-	uint8_t num_meas = 3;
+    uint16_t adc_val;
+    aaps_result_t res = AAPS_RET_ERROR_GENERAL;
     int8_t ch = packet->data[1];
-
-    if (ch >= ADC_CH0 && ch <= ADC_CH7)
+    struct ADC_t adc =
     {
-        while(num_meas--) {
-            adc_val[num_meas] = max1168_read_adc(ch, MAX1168_CLK_EXTERNAL,
-                                                 MAX1168_MODE_8BIT);
-        }
+        .channel = ch,
+        .clk = MAX1168_CLK_EXTERNAL,
+        .mode = MAX1168_MODE_8BIT,
+    };
 
+    res = max1168_read_adc(&adc, &adc_val);
+
+    if (res == AAPS_RET_OK) {
         type = is_current_meas(ch) ? IPC_DATA_CURRENT : IPC_DATA_VOLTAGE;
-
-        send_ipc_adc_value(adc_val[2], type);
-        send_ipc_adc_value(adc_val[1], type);
-        send_ipc_adc_value(adc_val[0], type);
+        send_ipc_adc_value(adc_val, type);
     }
-    return AAPS_RET_OK;
+    return res;
 }
 
 aaps_result_t cmd_exec_ctrl_relay(struct ipc_packet_t *packet,

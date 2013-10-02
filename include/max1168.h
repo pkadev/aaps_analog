@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "mspim.h"
+#include "boot.h"
 
 #define SPI_DUMMY_BYTE          0xff
 
@@ -16,17 +17,23 @@ enum max1168_channel_t {
     ADC_CH6, //CM2_6        - Reference current measurement.
     ADC_CH7, //VM30R_4      - Reference high voltage measurement.
 };
-enum max1168_clk {
+enum max1168_clk_t {
     MAX1168_CLK_EXTERNAL,
     MAX1168_CLK_INTERNAL
 };
 
-enum max1168_mode {
+enum max1168_mode_t {
     MAX1168_MODE_16BIT,
     MAX1168_MODE_8BIT
 };
 
-//uint16_t max1168_mean(enum max1168_channel_t channel, uint8_t samples);
-uint16_t max1168_read_adc(enum max1168_channel_t channel, enum max1168_clk clk, enum max1168_mode mode);
+struct ADC_t
+{
+    enum max1168_channel_t channel;
+    enum max1168_clk_t clk;
+    enum max1168_mode_t mode;
+};
+
+aaps_result_t max1168_read_adc(struct ADC_t *adc, uint16_t *adc_result);
 
 #endif

@@ -56,23 +56,27 @@ static uint8_t mspim_send(uint8_t xfer)
 //    return (uint16_t)tmp;
 //}
 
-uint16_t max1168_read_adc(enum max1168_channel_t channel, enum max1168_clk clk,
-                          enum max1168_mode mode)
+aaps_result_t max1168_read_adc(struct ADC_t *adc, uint16_t *adc_result)
 {
-    uint16_t raw_data;
-    max1168_init();
+    if (adc->channel >= ADC_CH0 && adc->channel <= ADC_CH7)
+    {
+        volatile uint16_t raw_data;
+        max1168_init();
 
-    CS_LOW();
+        CS_LOW();
 
-    mspim_send((channel << 5) | 0);
+        mspim_send((adc->channel << 5) | 0);
 
-    /* TODO: Check if we we need to use internal clock */
-    //if (clk == MAX1168_CLK_INTERNAL)
-    //    while ((EOC_PIN & (1<<EOC)));
+        /* TODO: Check if we we need to use internal clock */
+        //if (clk == MAX1168_CLK_INTERNAL)
+        //    while ((EOC_PIN & (1<<EOC)));
 
-    raw_data = mspim_send(SPI_DUMMY_BYTE) << 8;
-    raw_data |= mspim_send(SPI_DUMMY_BYTE);
-    CS_HIGH();
+        raw_data = mspim_send(SPI_DUMMY_BYTE) << 8;
+        raw_data |= mspim_send(SPI_DUMMY_BYTE);
+        CS_HIGH();
 
-    return raw_data;
+        *adc_result = raw_data;
+        return AAPS_RET_OK;
+    }
+    return AAPS_RET_ERROR_BAD_PARAMETERS;
 }

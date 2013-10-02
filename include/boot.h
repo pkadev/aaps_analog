@@ -5,6 +5,7 @@ typedef enum
 {
     AAPS_RET_OK,
     AAPS_RET_ERROR_GENERAL,
+    AAPS_RET_ERROR_BAD_PARAMETERS,
 } aaps_result_t;
 
 aaps_result_t boot(void);
