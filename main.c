@@ -14,11 +14,6 @@
 #include "mspim.h"
 #include "max1168.h"
 #include "cmd_exec.h"
-/*
- * SW1, aktiv låg, pullup, hittar du på PD2 (INT0/PCINT18)
- * SW2/IRQ, aktiv hög, pulldown, hittar du på PB0 (PCINT0/CLKO/ICP1)
- * OBS SW2/IRQ delas med IRQ dvs du får IRQ på _D också om du trycker på SW2.
- */
 
 struct ipc_packet_t ipc_packet = {0};
 volatile uint8_t read_ptr = 0;
@@ -34,28 +29,6 @@ ISR(INT1_vect)
         LED_CLR();
 }
 
-ISR(INT0_vect) /* SW1 */
-{
-    //LED_SET(); IRQ_SET();
-    //_delay_ms(3);
-    //IRQ_CLR(); LED_CLR();
-}
-
-ISR(PCINT0_vect) /* SW2 */
-{
-    /*
-     * Only do stuff on one edge and debounce.
-     * Button may need longer delay if extremely bouncy.
-     */
-    //if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
-    //    _delay_ms(20); //Debound delay
-    //    if((SW2_IN & (1<<SW2_PIN)) == (1<<SW2_PIN)) {
-    //        LED_SET();
-    //        _delay_ms(10);
-    //        LED_CLR();
-    //    }
-    //}
-}
 
 int main(void)
 {
