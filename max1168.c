@@ -19,11 +19,10 @@
 
 static void max1168_init(void)
 {
-    UBRR0 = 15;
+    UBRR0 = 3;
     UCSR0B |= (1<<RXEN0) | (1<<TXEN0);
     UCSR0C |= (1<<UMSEL01) | (1<<UMSEL00);
     UCSR0C &= ~(1<<UCPHA0);
-    //UCSR0C |= (1<<UCPOL0);
 
     MAX1168_CS_DDR |= (1<<MAX1168_CS_PIN);
     DDRD |= (1<<PD4) | (1<<PD1);
