@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "1wire.h"
 #include "max1168.h"
+#include "boot.h"
 
 #define IPC_RX_BUF_LEN 60
 #define IPC_DATA_LEN 2
@@ -40,7 +41,7 @@ struct ipc_packet_t
 };
 extern volatile uint8_t packets_available;
 void print_ipc(const char *str);
-void ipc_save_packet(struct ipc_packet_t *dst, size_t len, uint8_t read_ptr);
+aaps_result_t ipc_handle_packet(struct ipc_packet_t *ipc_packet);
 void print_ipc_int(const char *str, unsigned int integer);
 void send_ipc_temp(ow_temp_t *temp);
 void send_ipc_adc_value(uint16_t adc_value, enum ipc_data_type_t type);
