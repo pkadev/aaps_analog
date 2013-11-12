@@ -26,7 +26,6 @@ int main(void)
     aaps_result_t result = AAPS_RET_OK;
     if (boot() != AAPS_RET_OK)
         boot_failed();
-
     /*
      * Read channel if from eeprom? Or say hello with type
      * of peripheral?

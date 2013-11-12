@@ -10,7 +10,13 @@
 #include "max1168.h"
 #include "cmd_exec.h"
 
-#define SPI_WAIT() while(!(SPSR & (1<<SPIF)))
+static void spi_wait()
+{
+    while(!(SPSR & (1<<SPIF)))
+       LED_SET();
+
+    LED_CLR();
+}
 
 volatile uint8_t ipc_rcv_buf = 0;
 volatile uint8_t rx_buf[IPC_RX_BUF_LEN] = {0};
@@ -140,23 +146,18 @@ void print_ipc(const char *str)
 
     /* Signal to master that CMD is available */
     IRQ_SET();
-    SPI_WAIT();
+    spi_wait();
     IRQ_CLR();
 
     /* Tell master how many bytes to fetch */
     SPDR = ~len;
-    SPI_WAIT();
+    spi_wait();
     for(i = 0; i < len; i++) {
         SPDR = ~(str[i]);
-        SPI_WAIT();
+        spi_wait();
     }
 
     i = SPSR;
     i = SPDR;
     SPCR |= (1<<SPIE);
-    /*
-     * TODO: This must be here if you print two times in a row.
-     * Need to figure out why this is!
-     */
-    _delay_ms(10);
 }
