@@ -27,7 +27,6 @@ static uint8_t ow_read_bit(void);
 static void ow_write_bit(uint8_t bitval);
 static void ow_write_byte(uint8_t val);
 static uint8_t ow_read_byte(void);
-static uint8_t crc8(uint8_t *data_in, uint8_t size);
 static uint8_t ow_reset(void);
 static uint16_t _round(uint16_t _x);
 
@@ -147,7 +146,7 @@ static uint8_t ow_read_byte(void)
     return(value);
 }
 
-static uint8_t crc8(uint8_t *data_in, uint8_t size)
+uint8_t crc8(uint8_t *data_in, uint8_t size)
 {
     uint8_t  crc, bit_counter, data, feedback_bit;
     crc = CRC8INIT;

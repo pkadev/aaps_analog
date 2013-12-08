@@ -30,7 +30,7 @@ aaps_result_t cmd_exec_get_temp(struct ipc_packet_t *packet)
     else if (packet->data[1] == THERMO_SENSOR_1)
         ow_read_temperature(&sensor1, &temp);
 
-    send_ipc_temp(&temp);
+    //send_ipc_temp(&temp);
     return AAPS_RET_OK;
 }
 
@@ -51,7 +51,7 @@ aaps_result_t cmd_exec_get_adc(struct ipc_packet_t *packet)
 
     if (res == AAPS_RET_OK) {
         type = is_current_meas(ch) ? IPC_DATA_CURRENT : IPC_DATA_VOLTAGE;
-        send_ipc_adc_value(adc_val, type);
+        //send_ipc_adc_value(adc_val, type);
     }
     return res;
 }

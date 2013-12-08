@@ -3,12 +3,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "1wire.h"
-#include "max1168.h"
 #include "boot.h"
 
-#define IPC_RX_BUF_LEN 60
-#define IPC_DATA_LEN 2
+#define IPC_RX_BUF_LEN 62
+
 /* IPC Commands */
 enum ipc_command_t
 {
@@ -36,18 +34,36 @@ enum ipc_data_type_t
 
 struct ipc_packet_t
 {
-    uint8_t cmd;
     uint8_t len;
-    uint8_t data[IPC_DATA_LEN];
+    uint8_t cmd;
     uint8_t crc;
+    uint8_t *data;
 };
-extern volatile uint8_t packets_available;
-void print_ipc(const char *str);
-aaps_result_t ipc_handle_packet(struct ipc_packet_t *ipc_packet);
-void print_ipc_int(const char *str, unsigned int integer);
-void send_ipc_temp(ow_temp_t *temp);
-void send_ipc_adc_value(uint16_t adc_value, enum ipc_data_type_t type);
 
-#define IPC_PACKET_LEN sizeof(struct ipc_packet_t)
+typedef enum
+{
+    IPC_RET_OK,
+    IPC_RET_ERROR_GENERIC,
+    IPC_RET_ERROR_BAD_PARAMS,
+    IPC_RET_ERROR_TARGET_DEAD,
+    IPC_RET_ERROR_RX,
+    IPC_RET_ERROR_TX,
+    IPC_RET_ERROR_NOT_SUPPORTED,
+    IPC_RET_ERROR_PUT_SYNC,
+    IPC_RET_ERROR_GET_SYNC,
+    IPC_RET_ERROR_PUT_FINALIZE,
+    IPC_RET_ERROR_GET_FINALIZE,
+    IPC_RET_ERROR_TX_BUF_EMPTY,
+    IPC_RET_ERROR_OUT_OF_MEMORY,
+    IPC_RET_ERROR_CRC_FAIL,
+} ipc_ret_t;
 
+/* IPC primitives functions */
+void ipc_init(void);
+uint8_t packets_pending();
+ipc_ret_t ipc_transfer();
+void ipc_reduce_pkts_pending();
+
+/* TODO: Move to "business unit layer" ? */
+void ipc_send_enc(uint16_t enc_value);
 #endif

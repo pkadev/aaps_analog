@@ -3,10 +3,12 @@
 #include "m128_hal.h"
 #include "boot.h"
 #include "mspim.h"
+#include "ipc.h"
 
 static void enable_ext_irq();
 static void enable_pcint18();
 static void enable_pcint0();
+static void enable_pcint2();
 
 /* These two should probably go somewhere else */
 static void spi_init(void);
@@ -28,12 +30,14 @@ aaps_result_t boot(void)
     ZERO_VOLT_SET();
 
     enable_ext_irq();
+    enable_pcint2();
     if(0)
     {
         enable_pcint18();
         enable_pcint0();
     }
     spi_init();
+    ipc_init();
     aaps_result_t ret = AAPS_RET_OK;
     RELAY_D_INIT();
     /*
@@ -47,13 +51,20 @@ aaps_result_t boot(void)
 }
 static void spi_init(void)
 {
-    DDRB |= (1<<PB3); //This is MOSI as output?? Remove??
-    SPCR = (1<<SPIE) | (1<<SPE) | (1<<CPOL);
-    SPSR = (1<<SPI2X);
+    //DDRB |= (1<<PB3); //This is MOSI as output?? Remove??
+    SPCR = (1<<SPE) | (1<<CPOL);
     /* Do we need to set MISO as output? */
     DDRB |= (1<<PB4);
 }
 
+static void enable_pcint2()
+{
+    /* IRQ for SS on SPI to detect when SPI is busy */
+    /* PIN change IRQ */
+    PCICR |= (1<<PCIE0);      //Enable PCINT0 (PCINT0..7)
+    PCMSK0 |= (1<<PCINT2);   //Enable PCINT2
+    /* End PIN change IRQ */
+}
 
 void boot_failed(void)
 {

@@ -13,7 +13,7 @@ ISR(PCINT2_vect) { /*If SW1 is configured as PCINT18 */ }
 
 ISR(INT1_vect)
 {
-    print_ipc_int("CLIND ",(PIND & (1<<PD3)) >> PD3);
+ //   print_ipc_int("CLIND ",(PIND & (1<<PD3)) >> PD3);
     if (PIND & (1<<PD3))
         LED_SET();
     else
@@ -23,28 +23,42 @@ ISR(INT1_vect)
 
 int main(void)
 {
-    aaps_result_t result = AAPS_RET_OK;
     if (boot() != AAPS_RET_OK)
         boot_failed();
     /*
      * Read channel if from eeprom? Or say hello with type
      * of peripheral?
      */
-    print_ipc_int("[A] Hi from channel id: ", 1);
+    //print_ipc_int("[A] Hi from channel id: ", 1);
+
+    struct ipc_packet_t ipc_pkt;
+
 
     while(1)
     {
-        if (result == AAPS_RET_OK)
+        /* Handle IPC traffic */
+        if (ipc_transfer(&ipc_pkt) == IPC_RET_OK)
         {
-            if (packets_available)
+            if(packets_pending())
             {
-                ipc_handle_packet(&ipc_packet);
+                ipc_reduce_pkts_pending();
+                if (ipc_pkt.cmd == IPC_CMD_SET_RELAY)
+                {
+                    RELAY_SET();
+                }
+                free(ipc_pkt.data);
+                ipc_pkt.data = NULL;
             }
-        } else {
-            print_ipc("[A]Critical error\n");
-            LED_CLR();
+        }
+        else
+        {
+            /*TODO: Add error handling */
+            //lcd_write_string("IPC Error");
             while(1);
         }
+
+                    RELAY_D_SET();
+
     }
     return 0; //Should never get here
 }
