@@ -1,3 +1,4 @@
+#include "core.h"
 #include "cmd_exec.h"
 #include "m128_hal.h"
 #include "max1168.h"
@@ -25,12 +26,12 @@ aaps_result_t cmd_exec_get_temp(struct ipc_packet_t *packet)
     ow_device_t sensor1 =
     { .addr = { 0x28, 0x6F, 0x38, 0x9B, 0x01, 0x00, 0x00, 0x9D } };
 
-    if (packet->data[1] == THERMO_SENSOR_0)
+    if (packet->data[0] == THERMO_SENSOR_0)
         ow_read_temperature(&sensor0, &temp);
-    else if (packet->data[1] == THERMO_SENSOR_1)
+    else if (packet->data[0] == THERMO_SENSOR_1)
         ow_read_temperature(&sensor1, &temp);
 
-    //send_ipc_temp(&temp);
+    core_send_ipc_temp(&temp, packet->data[0]);
     return AAPS_RET_OK;
 }
 
@@ -39,7 +40,8 @@ aaps_result_t cmd_exec_get_adc(struct ipc_packet_t *packet)
     uint8_t type;
     uint16_t adc_val;
     aaps_result_t res = AAPS_RET_ERROR_GENERAL;
-    int8_t ch = packet->data[1];
+    int8_t ch = packet->data[0];
+
     struct ADC_t adc =
     {
         .channel = ch,
@@ -51,7 +53,7 @@ aaps_result_t cmd_exec_get_adc(struct ipc_packet_t *packet)
 
     if (res == AAPS_RET_OK) {
         type = is_current_meas(ch) ? IPC_DATA_CURRENT : IPC_DATA_VOLTAGE;
-        //send_ipc_adc_value(adc_val, type);
+        core_send_ipc_adc_value(adc_val, type, ch);
     }
     return res;
 }

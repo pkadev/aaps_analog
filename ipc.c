@@ -14,8 +14,6 @@
 #define IPC_PUT_BYTE 0x66
 #define SPDR_INV(x) ((uint8_t)(~x)&0xff)
 
-#define IPC_PKT_OVERHEAD 3  /* Len, cmd, crc */
-
 volatile uint8_t spi_busy_semaphore = 0;
 volatile uint8_t cs_is_restored = 1;
 
@@ -55,7 +53,7 @@ static bool ipc_is_tx_buf_empty(void)
         return false;
 }
 
-static aaps_result_t put_packet_in_tx_buf(struct ipc_packet_t *pkt)
+aaps_result_t put_packet_in_tx_buf(struct ipc_packet_t *pkt)
 {
     aaps_result_t res = AAPS_RET_OK;
     uint8_t *pkt_ptr = (uint8_t *)pkt;

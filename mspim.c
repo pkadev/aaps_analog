@@ -31,7 +31,6 @@ void write_voltage(uint8_t v_high, uint8_t v_low)
     mspim_send(v_high);
     mspim_send(v_low);
     CS_DAC_SET(CS_DAC_VOLT_PIN);
-
 }
 
 void write_current_limit(uint8_t i_high, uint8_t i_low)
@@ -42,5 +41,4 @@ void write_current_limit(uint8_t i_high, uint8_t i_low)
     mspim_send(i_high);
     mspim_send(i_low);
     CS_DAC_SET(CS_DAC_STR_PIN);
-
 }

@@ -6,6 +6,8 @@
 #include "boot.h"
 
 #define IPC_RX_BUF_LEN 62
+#define IPC_PKT_OVERHEAD 3  /* Len, cmd, crc */
+
 
 /* IPC Commands */
 enum ipc_command_t
@@ -63,6 +65,7 @@ void ipc_init(void);
 uint8_t packets_pending();
 ipc_ret_t ipc_transfer();
 void ipc_reduce_pkts_pending(struct ipc_packet_t *pkt);
+aaps_result_t put_packet_in_tx_buf(struct ipc_packet_t *pkt);
 
 /* TODO: Move to "business unit layer" ? */
 void ipc_send_enc(uint16_t enc_value);
