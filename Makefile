@@ -66,6 +66,7 @@ SRC += mspim.c
 SRC += max1168.c
 SRC += 1wire.c
 SRC += cmd_exec.c
+SRC += core.c
 
 # List Assembler source files here.
 #     Make them always end in a capital .S.  Files ending in a lowercase .s

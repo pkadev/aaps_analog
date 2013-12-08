@@ -61,14 +61,14 @@ aaps_result_t cmd_exec_ctrl_relay(struct ipc_packet_t *packet,
 {
     if (relay_id == RELAY_D_ID)
     {
-        if (packet->data[1])
+        if (packet->data[0])
             RELAY_D_SET();
         else
             RELAY_D_CLR();
     }
     else if (relay_id == RELAY_ID)
     {
-        if (packet->data[1])
+        if (packet->data[0])
             RELAY_SET();
         else
             RELAY_CLR();

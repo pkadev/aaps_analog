@@ -6,6 +6,7 @@
 #include "mspim.h"
 #include "max1168.h"
 #include "cmd_exec.h"
+#include "core.h"
 
 struct ipc_packet_t ipc_packet = {0};
 
@@ -41,13 +42,12 @@ int main(void)
         {
             if(packets_pending())
             {
-                ipc_reduce_pkts_pending();
-                if (ipc_pkt.cmd == IPC_CMD_SET_RELAY)
-                {
-                    RELAY_SET();
-                }
-                free(ipc_pkt.data);
-                ipc_pkt.data = NULL;
+                core_handle_ipc_pkt(&ipc_pkt);
+                /*
+                 * Maybe this should be called from
+                 * the core_handle_ipc_pKt() funciton
+                 */
+                ipc_reduce_pkts_pending(&ipc_pkt);
             }
         }
         else

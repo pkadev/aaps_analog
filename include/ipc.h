@@ -62,7 +62,7 @@ typedef enum
 void ipc_init(void);
 uint8_t packets_pending();
 ipc_ret_t ipc_transfer();
-void ipc_reduce_pkts_pending();
+void ipc_reduce_pkts_pending(struct ipc_packet_t *pkt);
 
 /* TODO: Move to "business unit layer" ? */
 void ipc_send_enc(uint16_t enc_value);

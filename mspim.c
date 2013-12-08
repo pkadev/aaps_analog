@@ -1,5 +1,5 @@
 #include <avr/io.h>
-#include "ipc.h"
+#include <stdint.h>
 #include "mspim.h"
 #include "m128_hal.h"
 

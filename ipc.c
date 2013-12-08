@@ -188,8 +188,10 @@ uint8_t packets_pending()
 {
     return pkts_pending;
 }
-void ipc_reduce_pkts_pending()
+void ipc_reduce_pkts_pending(struct ipc_packet_t *pkt)
 {
+    free(pkt->data);
+    pkt->data = NULL;
     pkts_pending--;
 }
 ipc_ret_t ipc_transfer(struct ipc_packet_t *pkt)
