@@ -21,18 +21,16 @@ aaps_result_t cmd_exec_get_temp(struct ipc_packet_t *packet)
      * of the them can never change.
      */
     ow_temp_t temp;
-    ow_device_t sensor0 =
-    { .addr = { 0x28, 0xFD, 0x92, 0x28, 0x01, 0x00, 0x00, 0xD5 } };
-    ow_device_t sensor1 =
-    { .addr = { 0x28, 0x6F, 0x38, 0x9B, 0x01, 0x00, 0x00, 0x9D } };
+    ow_ret_val_t ret = IPC_RET_ERROR_GENERIC;
+    ret = ow_read_temperature(&(ow_get_sensors()[packet->data[0]]), &temp);
 
-    if (packet->data[0] == THERMO_SENSOR_0)
-        ow_read_temperature(&sensor0, &temp);
-    else if (packet->data[0] == THERMO_SENSOR_1)
-        ow_read_temperature(&sensor1, &temp);
-
-    core_send_ipc_temp(&temp, packet->data[0]);
-    return AAPS_RET_OK;
+    if (ret != OW_RET_OK)
+        return AAPS_RET_ERROR_GENERAL;
+    else
+    {
+        core_send_ipc_temp(&temp, packet->data[0]);
+        return AAPS_RET_OK;
+    }
 }
 
 aaps_result_t cmd_exec_get_adc(struct ipc_packet_t *packet)

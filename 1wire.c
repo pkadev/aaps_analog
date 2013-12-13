@@ -9,6 +9,8 @@
 #define OW_CMD55_MATCH_ROM 0x55
 #define OW_CMD44_CONV_TEMP 0x44
 #define OW_CMDBE_READ_SCRATCHPAD 0xBE
+#define OW_CMD4E_WRITE_SCRATCHPAD 0x4E
+
 
 #define DQ_PORT PORTB
 #define DQ_DDR DDRB
@@ -22,6 +24,7 @@
 #define CRC8POLY    0x18    //0X18 = X^8+X^5+X^4+X^0
 
 #define THERM_DECIMAL_STEPS_12BIT 625
+#define THERM_DECIMAL_STEPS_9BIT 50
 
 static uint8_t ow_read_bit(void);
 static void ow_write_bit(uint8_t bitval);
@@ -30,8 +33,41 @@ static uint8_t ow_read_byte(void);
 static uint8_t ow_reset(void);
 static uint16_t _round(uint16_t _x);
 
+#define OW_NUM_SENSORS 2
+
+ow_device_t ow_sensors[OW_NUM_SENSORS];
+
+ow_device_t *ow_get_sensors(void)
+{
+    return ow_sensors;
+}
+ow_ret_val_t ow_init(void)
+{
+    int8_t num_sensors = OW_NUM_SENSORS;
+    ow_ret_val_t res;
+    ow_scratchpad_t sp;
+
+    ow_device_t sensor0 =
+    { .addr = { 0x28, 0xFD, 0x92, 0x28, 0x01, 0x00, 0x00, 0xD5 } };
+    ow_device_t sensor1 =
+    { .addr = { 0x28, 0x6F, 0x38, 0x9B, 0x01, 0x00, 0x00, 0x9D } };
+
+    ow_sensors[0] = sensor0;
+    ow_sensors[1] = sensor1;
+    do
+    {
+        res = ow_write_scratchpad(&(ow_sensors[num_sensors]), &sp);
+        if (res != OW_RET_OK)
+            return res;
+    } while(--num_sensors >= 0);
+
+    return OW_RET_OK;
+}
+
 ow_ret_val_t ow_read_temperature(ow_device_t *ow_device, ow_temp_t *ow_temp)
 {
+    ow_scratchpad_t scrpad;
+
     if (ow_device == NULL || ow_temp == NULL) {
         return OW_RET_FAIL;
     }
@@ -44,20 +80,41 @@ ow_ret_val_t ow_read_temperature(ow_device_t *ow_device, ow_temp_t *ow_temp)
     }
 
     ow_write_byte(OW_CMD44_CONV_TEMP);
-    while(ow_read_byte() == 0)
-        ;
+    while (ow_read_byte() == 0);
 
-    ow_scratchpad_t scrpad;
-
+    /* TODO: Check up on this calculation.
+     * Especially with regards to the changed 9 bit
+     * value that was 12 bit earlier and make it
+     * generic.
+     */
     if (ow_read_scratchpad(ow_device, &scrpad) == OW_RET_OK) {
         ow_temp->temp = ((scrpad.data[1]&0x7) << 4) & 0x7f;
         ow_temp->temp |= (scrpad.data[0] & 0xF0) >> 4;
-        ow_temp->dec = _round((scrpad.data[0] & 0x0F) * THERM_DECIMAL_STEPS_12BIT);
+        ow_temp->dec = _round((scrpad.data[0] & 0x0F) * THERM_DECIMAL_STEPS_9BIT);
         return OW_RET_OK;
     }
     return OW_RET_FAIL;
 }
 
+ow_ret_val_t ow_write_scratchpad(ow_device_t *ow_device, ow_scratchpad_t *scratchpad)
+{
+    ow_reset();
+    ow_write_byte(OW_CMD55_MATCH_ROM);
+    for (int8_t i = 0; i < OW_ROM_BYTE_LEN; i++) {
+        ow_write_byte(ow_device->addr[i]);
+    }
+
+    ow_write_byte(OW_CMD4E_WRITE_SCRATCHPAD);
+
+    ow_write_byte(0x00); /* Th */
+    ow_write_byte(0x00); /* Tl */
+    ow_write_byte(0x1F); /* Configuration */
+
+//    if (crc8(scratchpad->data, 8) != scratchpad->data[8]) {
+//        return OW_RET_FAIL;
+//    }
+    return OW_RET_OK;
+}
 ow_ret_val_t ow_read_scratchpad(ow_device_t *ow_device, ow_scratchpad_t *scratchpad)
 {
     ow_reset();

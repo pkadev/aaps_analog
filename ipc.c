@@ -245,38 +245,3 @@ end:
     }
     return res;
 }
-
-/* TODO: Move to "business unit layer" ? */
-void ipc_send_enc(uint16_t enc_value)
-{
-    /* TODO: Handle errors */
-    struct ipc_packet_t pkt;
-    pkt.len = sizeof(enc_value) + IPC_PKT_OVERHEAD;
-    pkt.cmd = IPC_DATA_ENC;
-    pkt.data = malloc(pkt.len - IPC_PKT_OVERHEAD);
-
-    if (pkt.data == NULL)
-    {
-        /* Handle error */
-        return;
-    }
-
-    pkt.data[0] = (enc_value >> 8);
-    pkt.data[1] = (enc_value & 0xff);
-
-    pkt.crc = crc8(pkt.data, 2);
-
-    if (put_packet_in_tx_buf(&pkt) != AAPS_RET_OK)
-    {
-        /* Handle error */
-        return;
-    }
-
-    free(pkt.data);
-
-    IRQ_SET();
-    /* TODO: Find out if we need NOP here */
-    IRQ_CLR();
-}
-
-

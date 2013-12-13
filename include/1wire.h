@@ -8,10 +8,11 @@
 typedef enum {
     OW_RET_FAIL,
     OW_RET_OK,
+    OW_RET_BUSY,
 } ow_ret_val_t;
 
 typedef struct {
-    uint8_t addr[OW_ROM_BYTE_LEN]; 
+    uint8_t addr[OW_ROM_BYTE_LEN];
 }ow_device_t;
 
 typedef struct {
@@ -32,9 +33,11 @@ ow_device_t *ow_devices;
 uint8_t ow_num_devices();
 void ow_print_device_addr(ow_device_t *ow_device);
 uint8_t crc8(uint8_t *data_in, uint8_t size);
-ow_ret_val_t ow_get_devices(ow_device_t *ow_devices);
+ow_ret_val_t ow_init(void);
+ow_device_t *ow_get_sensors(void);
 ow_ret_val_t ow_read_temperature(ow_device_t *ow_device, ow_temp_t *ow_temp);
 ow_ret_val_t ow_read_scratchpad(ow_device_t *rom, ow_scratchpad_t *scratchpad);
+ow_ret_val_t ow_write_scratchpad(ow_device_t *ow_device, ow_scratchpad_t *scratchpad);
 
 #endif
 

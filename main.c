@@ -34,6 +34,8 @@ int main(void)
 
     struct ipc_packet_t ipc_pkt;
 
+    if (ow_init() != OW_RET_OK)
+        while(1);
 
     while(1)
     {

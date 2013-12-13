@@ -75,6 +75,4 @@ ipc_ret_t ipc_transfer();
 void ipc_reduce_pkts_pending(struct ipc_packet_t *pkt);
 aaps_result_t put_packet_in_tx_buf(struct ipc_packet_t *pkt);
 
-/* TODO: Move to "business unit layer" ? */
-void ipc_send_enc(uint16_t enc_value);
 #endif

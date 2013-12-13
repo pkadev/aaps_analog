@@ -70,12 +70,3 @@ aaps_result_t core_send_ipc_temp(ow_temp_t *temp, uint8_t sensor)
     IRQ_CLR();
     return AAPS_RET_OK;
 }
-
-
-
-
-
-
-
-
-
