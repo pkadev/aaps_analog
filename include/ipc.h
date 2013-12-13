@@ -28,6 +28,8 @@ enum ipc_command_t
     IPC_CMD_DISPLAY_CURRENT,
     IPC_CMD_DISPLAY_THERMO,
     IPC_CMD_DISPLAY_DAC,
+    IPC_CMD_DISPLAY_POWER,
+    IPC_CMD_SET_LED,
 };
 
 enum ipc_data_type_t
@@ -40,6 +42,7 @@ enum ipc_data_type_t
     IPC_DATA_ENC_CCW = 0x80,
     IPC_DATA_ENC_BTN = 0x81,
     IPC_DATA_DAC = 0x82,
+    IPC_DATA_ENC_LONGPRESS = 0x83,
 };
 
 struct ipc_packet_t

@@ -11,14 +11,12 @@
 struct ipc_packet_t ipc_packet = {0};
 
 ISR(PCINT2_vect) { /*If SW1 is configured as PCINT18 */ }
+uint8_t volatile ilimit_active = 0;
+uint8_t volatile ilimit_inactive = 0;
 
 ISR(INT1_vect)
 {
- //   print_ipc_int("CLIND ",(PIND & (1<<PD3)) >> PD3);
-    if (PIND & (1<<PD3))
-        LED_SET();
-    else
-        LED_CLR();
+    ilimit_active++;
 }
 
 
@@ -39,6 +37,16 @@ int main(void)
 
     while(1)
     {
+        if (ilimit_active)
+        {
+            /* Send ilimit IPC command */
+            ilimit_active--;
+        }
+        if (ilimit_inactive)
+        {
+            /* Send ilimit IPC command */
+            ilimit_inactive--;
+        }
         /* Handle IPC traffic */
         if (ipc_transfer(&ipc_pkt) == IPC_RET_OK)
         {
@@ -56,11 +64,8 @@ int main(void)
         {
             /*TODO: Add error handling */
             //lcd_write_string("IPC Error");
-            while(1);
+            //for(;;);
         }
-
-                    RELAY_D_SET();
-
     }
     return 0; //Should never get here
 }

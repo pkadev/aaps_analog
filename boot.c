@@ -75,7 +75,7 @@ void boot_failed(void)
 }
 static void enable_ext_irq()
 {
-    EICRA |= (1<<ISC01) | (1<<ISC10);        //IRQ on falling edge
+    EICRA |= (1<<ISC11);        //IRQ on falling edge
     EIMSK |= (1<<INT0) | (1<<INT1);
 }
 
