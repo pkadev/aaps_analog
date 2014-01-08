@@ -38,6 +38,7 @@ ow_device_t *ow_get_sensors(void);
 ow_ret_val_t ow_read_temperature(ow_device_t *ow_device, ow_temp_t *ow_temp);
 ow_ret_val_t ow_read_scratchpad(ow_device_t *rom, ow_scratchpad_t *scratchpad);
 ow_ret_val_t ow_write_scratchpad(ow_device_t *ow_device, ow_scratchpad_t *scratchpad);
-
+ow_ret_val_t ow_convert_temp_async(ow_device_t *ow_device);
+ow_ret_val_t get_scratch_pad_async(ow_device_t *ow_device, ow_temp_t *ow_temp);
 #endif
 

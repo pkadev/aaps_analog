@@ -35,6 +35,7 @@
 
 /* CLIND defines */
 #define CLIND_PIN 3
+#define CLIND_IN PIND
 #define CLIND_PORT PORTD
 #define CLIND_DDR DDRD
 

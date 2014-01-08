@@ -37,6 +37,7 @@ static uint16_t _round(uint16_t _x);
 
 ow_device_t ow_sensors[OW_NUM_SENSORS];
 
+ow_temp_t sys_temp;
 ow_device_t *ow_get_sensors(void)
 {
     return ow_sensors;
@@ -57,6 +58,7 @@ ow_ret_val_t ow_init(void)
     do
     {
         res = ow_write_scratchpad(&(ow_sensors[num_sensors]), &sp);
+        ow_convert_temp_async(&(ow_sensors[num_sensors]));
         if (res != OW_RET_OK)
             return res;
     } while(--num_sensors >= 0);
@@ -64,11 +66,62 @@ ow_ret_val_t ow_init(void)
     return OW_RET_OK;
 }
 
-ow_ret_val_t ow_read_temperature(ow_device_t *ow_device, ow_temp_t *ow_temp)
+//ow_ret_val_t ow_read_temperature(ow_device_t *ow_device, ow_temp_t *ow_temp)
+//{
+//    ow_scratchpad_t scrpad;
+//
+//    if (ow_device == NULL || ow_temp == NULL) {
+//        return OW_RET_FAIL;
+//    }
+//
+//    ow_reset();
+//    ow_write_byte(OW_CMD55_MATCH_ROM);
+//
+//    for (int8_t i=0; i<OW_ROM_BYTE_LEN; i++) {
+//        ow_write_byte(ow_device->addr[i]);
+//    }
+//
+//    ow_write_byte(OW_CMD44_CONV_TEMP);
+//    while (ow_read_byte() == 0);
+//
+//    /* TODO: Check up on this calculation.
+//     * Especially with regards to the changed 9 bit
+//     * value that was 12 bit earlier and make it
+//     * generic.
+//     */
+//    if (ow_read_scratchpad(ow_device, &scrpad) == OW_RET_OK) {
+//        ow_temp->temp = ((scrpad.data[1]&0x7) << 4) & 0x7f;
+//        ow_temp->temp |= (scrpad.data[0] & 0xF0) >> 4;
+//        ow_temp->dec = _round((scrpad.data[0] & 0x0F) * THERM_DECIMAL_STEPS_9BIT);
+//        return OW_RET_OK;
+//    }
+//    return OW_RET_FAIL;
+//}
+ow_ret_val_t get_scratch_pad_async(ow_device_t *ow_device, ow_temp_t *ow_temp)
 {
+    //while(ow_read_byte() == 0)
+    //    ;
+    if (ow_read_byte() == 0)
+    {
+        ow_temp->temp = 99;
+        ow_temp->dec = 88;
+        return OW_RET_OK;
+    }
+
     ow_scratchpad_t scrpad;
 
-    if (ow_device == NULL || ow_temp == NULL) {
+    if (ow_read_scratchpad(ow_device, &scrpad) == OW_RET_OK) {
+        ow_temp->temp = ((scrpad.data[1]&0x7) << 4) & 0x7f;
+        ow_temp->temp |= (scrpad.data[0] & 0xF0) >> 4;
+
+        ow_temp->dec = _round((scrpad.data[0] & 0x0F) * THERM_DECIMAL_STEPS_9BIT);
+        return OW_RET_OK;
+    }
+    return OW_RET_FAIL;
+}
+ow_ret_val_t ow_convert_temp_async(ow_device_t *ow_device)
+{
+    if (ow_device == NULL) {
         return OW_RET_FAIL;
     }
 
@@ -80,20 +133,8 @@ ow_ret_val_t ow_read_temperature(ow_device_t *ow_device, ow_temp_t *ow_temp)
     }
 
     ow_write_byte(OW_CMD44_CONV_TEMP);
-    while (ow_read_byte() == 0);
 
-    /* TODO: Check up on this calculation.
-     * Especially with regards to the changed 9 bit
-     * value that was 12 bit earlier and make it
-     * generic.
-     */
-    if (ow_read_scratchpad(ow_device, &scrpad) == OW_RET_OK) {
-        ow_temp->temp = ((scrpad.data[1]&0x7) << 4) & 0x7f;
-        ow_temp->temp |= (scrpad.data[0] & 0xF0) >> 4;
-        ow_temp->dec = _round((scrpad.data[0] & 0x0F) * THERM_DECIMAL_STEPS_9BIT);
-        return OW_RET_OK;
-    }
-    return OW_RET_FAIL;
+    return OW_RET_OK;
 }
 
 ow_ret_val_t ow_write_scratchpad(ow_device_t *ow_device, ow_scratchpad_t *scratchpad)

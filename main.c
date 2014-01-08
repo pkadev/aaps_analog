@@ -12,18 +12,21 @@ struct ipc_packet_t ipc_packet = {0};
 
 ISR(PCINT2_vect) { /*If SW1 is configured as PCINT18 */ }
 uint8_t volatile ilimit_active = 0;
-uint8_t volatile ilimit_inactive = 0;
-
+volatile uint8_t clind = 0;
 ISR(INT1_vect)
 {
-    ilimit_active++;
 }
 
-
+ISR(TIMER1_OVF_vect)
+{
+    ilimit_active = 3;
+}
 int main(void)
 {
     if (boot() != AAPS_RET_OK)
         boot_failed();
+
+    write_current_limit(0, 100);
     /*
      * Read channel if from eeprom? Or say hello with type
      * of peripheral?
@@ -32,21 +35,37 @@ int main(void)
 
     struct ipc_packet_t ipc_pkt;
 
+    TCCR1B |= (1 << CS11) | (1 << CS10);
     if (ow_init() != OW_RET_OK)
         while(1);
 
     while(1)
     {
-        if (ilimit_active)
+        /* Check CLIND */
+        if ((CLIND_IN & (1<<CLIND_PIN)))
         {
-            /* Send ilimit IPC command */
-            ilimit_active--;
+            ilimit_active = 2;
+            TCNT1L = 0xff;
+            TCNT1H = 0x8f;
         }
-        if (ilimit_inactive)
+        if (ilimit_active == 3)
         {
-            /* Send ilimit IPC command */
-            ilimit_inactive--;
+            ilimit_active = 1;
+            clind = 0;
+            core_send_clind(0);
+            TIMSK1 &= ~(1<<TOIE1);
         }
+        if (ilimit_active == 2)
+        {
+            TIFR1 |= (1<<TOV1);
+            TIMSK1 = (1<<TOIE1);
+            if (!clind)
+            {
+                clind = 1;
+                core_send_clind(1);
+            }
+        }
+
         /* Handle IPC traffic */
         if (ipc_transfer(&ipc_pkt) == IPC_RET_OK)
         {

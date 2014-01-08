@@ -22,8 +22,9 @@ aaps_result_t cmd_exec_get_temp(struct ipc_packet_t *packet)
      */
     ow_temp_t temp;
     ow_ret_val_t ret = IPC_RET_ERROR_GENERIC;
-    ret = ow_read_temperature(&(ow_get_sensors()[packet->data[0]]), &temp);
+    ret = get_scratch_pad_async(&(ow_get_sensors()[packet->data[0]]), &temp);
 
+    ow_convert_temp_async(&(ow_get_sensors()[packet->data[0]]));
     if (ret != OW_RET_OK)
         return AAPS_RET_ERROR_GENERAL;
     else

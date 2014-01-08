@@ -70,3 +70,34 @@ aaps_result_t core_send_ipc_temp(ow_temp_t *temp, uint8_t sensor)
     IRQ_CLR();
     return AAPS_RET_OK;
 }
+
+aaps_result_t core_send_clind(uint8_t data)
+{
+    /* TODO: Handle errors */
+    struct ipc_packet_t pkt;
+    uint8_t payload_len = 2;
+    uint8_t total_len = payload_len + IPC_PKT_OVERHEAD;
+    pkt.len = total_len;
+    pkt.cmd = IPC_DATA_CLIND;
+    pkt.data = malloc(payload_len);
+
+    if (pkt.data == NULL)
+        return AAPS_RET_ERROR_OUT_OF_MEMORY;
+
+    pkt.data[0] = data;
+    pkt.data[1] = ilimit_active;
+
+    pkt.crc = crc8(pkt.data, payload_len);
+
+    if (put_packet_in_tx_buf(&pkt) != AAPS_RET_OK)
+    {
+        return AAPS_RET_ERROR_GENERAL;
+    }
+
+    free(pkt.data);
+
+    IRQ_SET();
+    /* TODO: Find out if we need NOP here */
+    IRQ_CLR();
+    return AAPS_RET_OK;
+}
