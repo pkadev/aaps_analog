@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <util/delay.h>
+#include <avr/eeprom.h>
 #include "m128_hal.h"
 #include "boot.h"
 #include "mspim.h"
@@ -42,6 +43,11 @@ aaps_result_t boot(void)
     RELAY_D_INIT();
 
     return ret;
+}
+
+uint16_t read_device_id(void)
+{
+   return eeprom_read_word(0x00);
 }
 static void spi_init(void)
 {

@@ -10,6 +10,7 @@ typedef enum
     AAPS_RET_ERROR_OUT_OF_MEMORY,
 } aaps_result_t;
 
+uint16_t read_device_id(void);
 aaps_result_t boot(void);
 void boot_failed(void);
 #endif
