@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "1wire.h"
 #include "m128_hal.h"
+#include "boot.h"
 
 /*
  * One Wire Command defines
@@ -33,28 +34,60 @@ static uint8_t ow_read_byte(void);
 static uint8_t ow_reset(void);
 static uint16_t _round(uint16_t _x);
 
-#define OW_NUM_SENSORS 2
+ow_device_t *ow_sensors;
+ow_device_t sensors_brd0001[] =
+{
+    {
+        .addr = { 0x28, 0x7E, 0x43, 0x9B, 0x01, 0x00, 0x00, 0xEC }
+    },
+    {
+        .addr = { 0x28, 0xFC, 0x4C, 0x9B, 0x01, 0x00, 0x00, 0x07 }
+    },
+    {
+        .addr = { 0x28, 0x5B, 0xE6, 0xDE, 0x03, 0x00, 0x00, 0x7E }
+    },
+    {
+        .addr = { 0x28, 0xBF, 0x26, 0xDF, 0x03, 0x00, 0x00, 0x26 }
+    },
+    {
+        .addr = { 0x28, 0x5B, 0x9E, 0x0E, 0x01, 0x00, 0x00, 0x63 }
+    }
 
-ow_device_t ow_sensors[OW_NUM_SENSORS];
+};
+ow_device_t sensors_brd0002[] =
+{
+    {
+        .addr = { 0x28, 0xFD, 0x92, 0x28, 0x01, 0x00, 0x00, 0xD5 }
+    },
+    {
 
+        .addr = { 0x28, 0x6F, 0x38, 0x9B, 0x01, 0x00, 0x00, 0x9D }
+    }
+};
 ow_temp_t sys_temp;
 ow_device_t *ow_get_sensors(void)
 {
     return ow_sensors;
 }
+
 ow_ret_val_t ow_init(void)
 {
-    int8_t num_sensors = OW_NUM_SENSORS;
+    int8_t num_sensors = 0;
     ow_ret_val_t res;
     ow_scratchpad_t sp;
 
-    ow_device_t sensor0 =
-    { .addr = { 0x28, 0xFD, 0x92, 0x28, 0x01, 0x00, 0x00, 0xD5 } };
-    ow_device_t sensor1 =
-    { .addr = { 0x28, 0x6F, 0x38, 0x9B, 0x01, 0x00, 0x00, 0x9D } };
+    switch (read_device_id())
+    {
+        case 0x0001:
+            ow_sensors = sensors_brd0001;
+            num_sensors = sizeof(sensors_brd0001) / sizeof(ow_device_t);
+          break;
+        case 0x0002:
+            ow_sensors = sensors_brd0002;
+            num_sensors = sizeof(sensors_brd0002) / sizeof(ow_device_t);
+          break;
+    }
 
-    ow_sensors[0] = sensor0;
-    ow_sensors[1] = sensor1;
     do
     {
         res = ow_write_scratchpad(&(ow_sensors[num_sensors]), &sp);
