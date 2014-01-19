@@ -74,13 +74,19 @@ aaps_result_t cmd_exec_ctrl_relay(struct ipc_packet_t *packet,
 
     return AAPS_RET_OK;
 }
+
+static aaps_result_t resp_periph_detec(struct ipc_packet_t *packet)
+{
+    core_send_periph_info();
+    return AAPS_RET_OK;
+}
 aaps_result_t core_handle_ipc_pkt(struct ipc_packet_t *pkt)
 {
     aaps_result_t res = AAPS_RET_OK;
     switch(pkt->cmd)
     {
         case IPC_CMD_PERIPH_DETECT:
-            //print_ipc("[A] P detect\n");
+            resp_periph_detec(pkt);
             break;
         case IPC_CMD_SET_VOLTAGE:
             write_voltage(pkt->data[1], pkt->data[0]);

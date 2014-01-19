@@ -26,6 +26,7 @@ int main(void)
     if (boot() != AAPS_RET_OK)
         boot_failed();
 
+
     write_current_limit(0, 100);
     /*
      * Read channel if from eeprom? Or say hello with type

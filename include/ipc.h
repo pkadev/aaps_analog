@@ -47,6 +47,7 @@ enum ipc_data_type_t
     IPC_DATA_ENC_SW1 = 0x85,
     IPC_DATA_ENC_SW2 = 0x86,
     IPC_DATA_CLIND = 0x87,
+    IPC_DATA_PERIPH_DETECT = 0x88,
 };
 
 struct ipc_packet_t

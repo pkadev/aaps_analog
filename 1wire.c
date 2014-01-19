@@ -34,6 +34,8 @@ static uint8_t ow_read_byte(void);
 static uint8_t ow_reset(void);
 static uint16_t _round(uint16_t _x);
 
+uint8_t ow_num_sensors = 0;
+
 ow_device_t *ow_sensors;
 ow_device_t sensors_brd0001[] =
 {
@@ -70,9 +72,13 @@ ow_device_t *ow_get_sensors(void)
     return ow_sensors;
 }
 
+uint8_t ow_get_num_sensors(void)
+{
+    return ow_num_sensors;
+}
+
 ow_ret_val_t ow_init(void)
 {
-    int8_t num_sensors = 0;
     ow_ret_val_t res;
     ow_scratchpad_t sp;
 
@@ -80,14 +86,15 @@ ow_ret_val_t ow_init(void)
     {
         case 0x0001:
             ow_sensors = sensors_brd0001;
-            num_sensors = sizeof(sensors_brd0001) / sizeof(ow_device_t);
+            ow_num_sensors = sizeof(sensors_brd0001) / sizeof(ow_device_t);
           break;
         case 0x0002:
             ow_sensors = sensors_brd0002;
-            num_sensors = sizeof(sensors_brd0002) / sizeof(ow_device_t);
+            ow_num_sensors = (int8_t)sizeof(sensors_brd0002) / sizeof(ow_device_t);
           break;
     }
 
+    int8_t num_sensors = ow_num_sensors;
     do
     {
         res = ow_write_scratchpad(&(ow_sensors[num_sensors]), &sp);

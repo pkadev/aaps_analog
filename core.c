@@ -101,3 +101,37 @@ aaps_result_t core_send_clind(uint8_t data)
     IRQ_CLR();
     return AAPS_RET_OK;
 }
+
+aaps_result_t core_send_periph_info(void)
+{
+    /* TODO: Handle errors */
+    struct ipc_packet_t pkt;
+    uint8_t payload_len = 3;
+    uint8_t total_len = payload_len + IPC_PKT_OVERHEAD;
+    uint16_t device_id = read_device_id();
+
+    pkt.len = total_len;
+    pkt.cmd = IPC_DATA_PERIPH_DETECT;
+    pkt.data = malloc(payload_len);
+
+    if (pkt.data == NULL)
+        return AAPS_RET_ERROR_OUT_OF_MEMORY;
+
+    pkt.data[0] = device_id << 8;
+    pkt.data[1] = device_id & 0xFF;
+    pkt.data[2] = ow_get_num_sensors();
+
+    pkt.crc = crc8(pkt.data, payload_len);
+
+    if (put_packet_in_tx_buf(&pkt) != AAPS_RET_OK)
+    {
+        return AAPS_RET_ERROR_GENERAL;
+    }
+
+    free(pkt.data);
+
+    IRQ_SET();
+    /* TODO: Find out if we need NOP here */
+    IRQ_CLR();
+    return AAPS_RET_OK;
+}
