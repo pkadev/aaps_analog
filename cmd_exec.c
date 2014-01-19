@@ -3,9 +3,6 @@
 #include "m128_hal.h"
 #include "max1168.h"
 
-#define THERMO_SENSOR_0     0x00
-#define THERMO_SENSOR_1     0x01
-
 static bool is_current_meas(enum max1168_channel_t ch)
 {
     if (ch == ADC_CH2 || ch == ADC_CH6)
