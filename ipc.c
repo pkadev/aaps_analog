@@ -140,7 +140,11 @@ static ipc_ret_t ipc_receive(struct ipc_packet_t *rx_pkt)
     }
 
     if (crc8(rx_pkt->data, rx_pkt->len - IPC_PKT_OVERHEAD) != rx_pkt->crc)
-       ret = IPC_RET_ERROR_CRC_FAIL;
+    {
+        ret = IPC_RET_ERROR_CRC_FAIL;
+        free(rx_pkt->data);
+        rx_pkt->data = NULL;
+    }
 exit:
     /* Clear SPDR so it's not sync/finalize byte */
     SPDR = SPDR_INV(0x00);
