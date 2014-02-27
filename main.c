@@ -15,7 +15,7 @@ uint8_t volatile ilimit_active = 0;
 volatile uint8_t clind = 0;
 volatile uint8_t clind_steady = 0;
 ISR(INT1_vect)
-}
+{
     clind_steady = 1;
 }
 
