@@ -75,8 +75,9 @@ void boot_failed(void)
 }
 static void enable_ext_irq()
 {
-    EICRA |= (1<<ISC10);        //IRQ on rising edge
-    EIMSK |= (1<<INT0); // | (1<<INT1);
+    EICRA &= ~(1<<ISC11);
+    EICRA |= (1<<ISC10);        //IRQ on any edge
+    EIMSK |= (1<<INT1);
 }
 
 static void enable_pcint18()

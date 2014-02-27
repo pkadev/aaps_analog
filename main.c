@@ -13,8 +13,10 @@ struct ipc_packet_t ipc_packet = {0};
 ISR(PCINT2_vect) { /*If SW1 is configured as PCINT18 */ }
 uint8_t volatile ilimit_active = 0;
 volatile uint8_t clind = 0;
+volatile uint8_t clind_steady = 0;
 ISR(INT1_vect)
-{
+}
+    clind_steady = 1;
 }
 
 ISR(TIMER1_OVF_vect)
@@ -25,7 +27,6 @@ int main(void)
 {
     if (boot() != AAPS_RET_OK)
         boot_failed();
-
     /*
      * Read channel if from eeprom? Or say hello with type
      * of peripheral?
@@ -41,29 +42,51 @@ int main(void)
     while(1)
     {
         /* Check CLIND */
-        if ((CLIND_IN & (1<<CLIND_PIN)))
+        switch (read_device_id())
         {
-            ilimit_active = 2;
-            TCNT1L = 0xff;
-            TCNT1H = 0x8f;
+            case 0x0001:
+
+                if (clind_steady)
+                {
+                    if ((CLIND_IN & (1<<CLIND_PIN)))
+                    {
+                        core_send_clind(1);
+                    }
+                    else
+                    {
+                        core_send_clind(0);
+                    }
+                    clind_steady = 0;
+                }
+            break;
+            case 0x0002:
+
+                if ((CLIND_IN & (1<<CLIND_PIN)))
+                {
+                    ilimit_active = 2;
+                    TCNT1L = 0xff;
+                    TCNT1H = 0x8f;
+                }
+                if (ilimit_active == 3)
+                {
+                    ilimit_active = 1;
+                    clind = 0;
+                    core_send_clind(0);
+                    TIMSK1 &= ~(1<<TOIE1);
+                }
+                if (ilimit_active == 2)
+                {
+                    TIFR1 |= (1<<TOV1);
+                    TIMSK1 = (1<<TOIE1);
+                if (!clind)
+                {
+                    clind = 1;
+                    core_send_clind(1);
+                }
+            break;
         }
-        if (ilimit_active == 3)
-        {
-            ilimit_active = 1;
-            clind = 0;
-            core_send_clind(0);
-            TIMSK1 &= ~(1<<TOIE1);
-        }
-        if (ilimit_active == 2)
-        {
-            TIFR1 |= (1<<TOV1);
-            TIMSK1 = (1<<TOIE1);
-            if (!clind)
-            {
-                clind = 1;
-                core_send_clind(1);
-            }
-        }
+
+    }
 
         /* Handle IPC traffic */
         if (ipc_transfer(&ipc_pkt) == IPC_RET_OK)
